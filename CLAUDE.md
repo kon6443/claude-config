@@ -255,3 +255,9 @@ A task is done when:
 - Regression coverage:
 - Verification performed:
 - Risk/rollback notes:
+
+---
+
+## Local Setup Check
+
+세션 시작 시 프로젝트에 `CLAUDE.md`가 없으면 생성을 제안할 것. 단, 한 번만 제안하고 반복하지 않음.

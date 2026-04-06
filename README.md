@@ -48,7 +48,8 @@ for f in commands CLAUDE.md agents; do [ -e ~/.claude/$f ] && mv ~/.claude/$f ~/
 - 프로젝트 소개 (스택, 구조)
 - 빌드/실행 커맨드
 - 컨벤션 (날짜 처리, 에러 핸들링, 네이밍 등)
-- 연관 프로젝트 경로 (예: `../mobisell-front`)
+- 연관 프로젝트 경로 (예: `../project-front`)
+- 태스크 관리 경로 (체크리스트, lessons 파일 위치)
 
 ### 선택: 로컬 /review 커맨드
 

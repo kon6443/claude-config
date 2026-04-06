@@ -28,19 +28,22 @@ These rules define how an AI coding agent should plan, execute, verify, communic
 - Give each subagent **one focused objective** and a concrete deliverable:
   - "Find where X is implemented and list files + key functions" beats "look around."
 - Merge subagent outputs into a short, actionable synthesis before coding.
+- 연관 프로젝트 코드 확인이 필요할 때 `cross-project-researcher` 에이전트를 활용:
+  - API 스펙 대조, 타입/필드 불일치 확인, 컨벤션 파악 등
+  - 예: 프론트↔백 간 API 변경, DB 스키마 영향 범위 확인 시
 
 ### 3. Incremental Delivery (Reduce Risk)
 - Prefer **thin vertical slices** over big-bang changes.
 - Land work in small, verifiable increments:
-  - implement â†’ test â†’ verify â†’ then expand.
+  - implement → test → verify → then expand.
 - When feasible, keep changes behind:
   - feature flags, config switches, or safe defaults.
 
 ### 4. Self-Improvement Loop
 - After any user correction or a discovered mistake:
-  - add a new entry to `tasks/lessons.md` capturing:
+  - add a new entry to the lessons file capturing:
     - the failure mode, the detection signal, and a prevention rule.
-- Review `tasks/lessons.md` at session start and before major refactors.
+- Review lessons at session start and before major refactors.
 
 ### 5. Verification Before "Done"
 - Never mark complete without evidence:
@@ -56,7 +59,7 @@ These rules define how an AI coding agent should plan, execute, verify, communic
 
 ### 7. Autonomous Bug Fixing (With Guardrails)
 - When given a bug report:
-  - reproduce â†’ isolate root cause â†’ fix â†’ add regression coverage â†’ verify.
+  - reproduce → isolate root cause → fix → add regression coverage → verify.
 - Do not offload debugging work to the user unless truly blocked.
 - If blocked, ask for **one** missing detail with a recommended default and explain what changes based on the answer.
 
@@ -65,7 +68,7 @@ These rules define how an AI coding agent should plan, execute, verify, communic
 ## Task Management (File-Based, Auditable)
 
 1. **Plan First**
-   - Write a checklist to `tasks/todo.md` for any non-trivial work.
+   - Write a checklist for any non-trivial work.
    - Include "Verify" tasks explicitly (lint/tests/build/manual checks).
 2. **Define Success**
    - Add acceptance criteria (what must be true when done).
@@ -76,7 +79,7 @@ These rules define how an AI coding agent should plan, execute, verify, communic
 5. **Document Results**
    - Add a short "Results" section: what changed, where, how verified.
 6. **Capture Lessons**
-   - Update `tasks/lessons.md` after corrections or postmortems.
+   - Update lessons after corrections or postmortems.
 
 ---
 
@@ -118,7 +121,7 @@ When you must ask:
 - Prefer small, local reads (targeted files) over scanning the whole repo.
 
 ### 2. Keep a Working Memory
-- Maintain a short running "Working Notes" section in `tasks/todo.md`:
+- Maintain a short running "Working Notes" section:
   - key constraints, invariants, decisions, and discovered pitfalls.
 - When context gets large:
   - compress into a brief summary and discard raw noise.
@@ -237,7 +240,7 @@ A task is done when:
 
 ## Templates
 
-### Plan Template (Paste into `tasks/todo.md`)
+### Plan Template
 - [ ] Restate goal + acceptance criteria
 - [ ] Locate existing implementation / patterns
 - [ ] Design: minimal approach + key decisions

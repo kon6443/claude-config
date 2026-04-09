@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "CLAUDE_CODE_NO_FLICKER": "1"
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git branch:*)",
+      "Bash(git show:*)",
+      "Bash(git fetch:*)",
+      "Bash(pnpm:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx jest:*)",
+      "Bash(npx tsc:*)",
+      "Bash(ls:*)",
+      "Bash(node:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)",
+      "Bash(sort:*)",
+      "Bash(awk:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(jq:*)",
+      "Bash(claude:*)",
+      "Bash(gh:*)",
+      "WebSearch"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf $HOME*)",
+      "Bash(rm -rf .)",
+      "Bash(git push --force*)",
+      "Bash(git push * --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * +*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(git checkout -- .)",
+      "Bash(git restore .)",
+      "Bash(git branch -D*)",
+      "Bash(chmod 777*)",
+      "Bash(curl * | bash)",
+      "Bash(curl * | sh)",
+      "Bash(curl * | zsh)",
+      "Bash(curl * | python*)",
+      "Bash(wget * | bash)",
+      "Bash(wget * | sh)",
+      "Bash(wget * | python*)",
+      "Bash(eval *curl*)",
+      "Bash(eval *wget*)",
+      "Bash(cat ~/.ssh/*)",
+      "Bash(cp ~/.ssh/*)",
+      "Bash(scp ~/.ssh/*)",
+      "Bash(base64 ~/.ssh/*)",
+      "Bash(cat */.env*)",
+      "Bash(cp */.env*)",
+      "Bash(scp */.env*)",
+      "Bash(base64 */.env*)",
+      "Bash(cat *credentials*)",
+      "Bash(cp *credentials*)",
+      "Bash(scp *credentials*)",
+      "Bash(base64 *credentials*)",
+      "Bash(npm publish*)",
+      "Bash(pnpm publish*)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(git commit *)",
+      "Bash(git merge *)",
+      "Bash(git rebase *)",
+      "Bash(git stash *)",
+      "Bash(git tag *)",
+      "Bash(docker *)",
+      "Bash(rm *)"
+    ],
+    "defaultMode": "auto"
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "osascript -e 'display notification \"Claude Code needs your attention\" with title \"Claude Code\"'",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "sh ~/.claude/statusline-command.sh"
+  },
+  "enabledPlugins": {
+    "figma@claude-plugins-official": true
+  },
+  "language": "Korean",
+  "showTurnDuration": true,
+  "skipAutoPermissionPrompt": true
+}

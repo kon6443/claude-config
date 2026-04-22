@@ -96,7 +96,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "osascript -e 'display notification \"Claude Code needs your attention\" with title \"Claude Code\"'",
+            "command": "if command -v osascript >/dev/null 2>&1; then osascript -e 'display notification \"Claude Code needs your attention\" with title \"Claude Code\"'; elif command -v notify-send >/dev/null 2>&1; then notify-send 'Claude Code' 'Claude Code needs your attention'; fi",
             "timeout": 5
           }
         ]
@@ -108,7 +108,16 @@
     "command": "sh ~/.claude/statusline-command.sh"
   },
   "enabledPlugins": {
-    "figma@claude-plugins-official": true
+    "figma@claude-plugins-official": true,
+    "redis-development@redis": true
+  },
+  "extraKnownMarketplaces": {
+    "redis": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/redis/agent-skills.git"
+      }
+    }
   },
   "language": "Korean",
   "showTurnDuration": true,

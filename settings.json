@@ -71,7 +71,11 @@
       "Bash(scp *credentials*)",
       "Bash(base64 *credentials*)",
       "Bash(npm publish*)",
-      "Bash(pnpm publish*)"
+      "Bash(pnpm publish*)",
+      "Edit(~/dotfiles/**)",
+      "Edit(~/.claude/**)",
+      "Write(~/dotfiles/**)",
+      "Write(~/.claude/**)"
     ],
     "ask": [
       "Bash(git push *)",
@@ -83,7 +87,7 @@
       "Bash(docker *)",
       "Bash(rm *)"
     ],
-    "defaultMode": "auto"
+    "defaultMode": "default"
   },
   "hooks": {
     "Notification": [

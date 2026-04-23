@@ -6,7 +6,7 @@ Claude Code 글로벌 설정 파일 모음.
 ## 구조
 
 ```
-claude/
+claude-config/
 ├── CLAUDE.md                # 글로벌 AI 코딩 에이전트 가이드라인
 ├── settings.json            # 권한(allow/ask/deny), hooks, statusline, 플러그인
 ├── statusline-command.sh    # 하단 상태바 커스터마이징 스크립트
@@ -30,22 +30,22 @@ claude/
 
 ```bash
 # 1. 클론
-git clone git@github.com:OnamKwon/claude-config.git ~/dotfiles/claude
+git clone git@github.com:OnamKwon/claude-config.git ~/dotfiles/claude-config
 
 # 2. 심링크 (기존 파일이 있으면 백업 후 연결)
 for f in commands CLAUDE.md agents settings.json statusline-command.sh; do
   [ -e ~/.claude/$f ] && mv ~/.claude/$f ~/.claude/$f.bak
-  ln -s ~/dotfiles/claude/$f ~/.claude/$f
+  ln -s ~/dotfiles/claude-config/$f ~/.claude/$f
 done
 ```
 
 ## 원커맨드 셋업 (클론 + 심링크)
 
 ```bash
-git clone git@github.com:OnamKwon/claude-config.git ~/dotfiles/claude && \
+git clone git@github.com:OnamKwon/claude-config.git ~/dotfiles/claude-config && \
 for f in commands CLAUDE.md agents settings.json statusline-command.sh; do \
   [ -e ~/.claude/$f ] && mv ~/.claude/$f ~/.claude/$f.bak; \
-  ln -s ~/dotfiles/claude/$f ~/.claude/$f; \
+  ln -s ~/dotfiles/claude-config/$f ~/.claude/$f; \
 done
 ```
 

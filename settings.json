@@ -120,6 +120,5 @@
     }
   },
   "language": "Korean",
-  "showTurnDuration": true,
-  "skipAutoPermissionPrompt": true
+  "showTurnDuration": true
 }

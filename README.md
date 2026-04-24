@@ -48,7 +48,7 @@ claude-config/
 
 ```bash
 # 1. 클론
-git clone git@github.com:OnamKwon/claude-config.git ~/dotfiles/claude-config
+git clone git@github.com:kon6443/claude-config.git ~/dotfiles/claude-config
 
 # 2. 심링크 (기존 파일이 있으면 백업 후 연결)
 for f in commands CLAUDE.md agents settings.json statusline-command.sh; do
@@ -60,7 +60,7 @@ done
 ## 원커맨드 셋업 (클론 + 심링크)
 
 ```bash
-git clone git@github.com:OnamKwon/claude-config.git ~/dotfiles/claude-config && \
+git clone git@github.com:kon6443/claude-config.git ~/dotfiles/claude-config && \
 for f in commands CLAUDE.md agents settings.json statusline-command.sh; do \
   [ -e ~/.claude/$f ] && mv ~/.claude/$f ~/.claude/$f.bak; \
   ln -s ~/dotfiles/claude-config/$f ~/.claude/$f; \

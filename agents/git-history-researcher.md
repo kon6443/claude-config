@@ -1,6 +1,6 @@
 ---
 name: git-history-researcher
-description: 특정 파일/함수/라인의 Git 변경 이력을 추적하여 언제/누가/왜 변경했는지 커밋/PR 기반으로 요약. 버그 도입 시점 역추적, 기능 변천사 조사, 코드 의도 파악에 사용.
+description: 📜 특정 파일/함수/라인의 Git 변경 이력을 추적하여 언제/누가/왜 변경했는지 커밋/PR 기반으로 요약. 버그 도입 시점 역추적, 기능 변천사 조사, 코드 의도 파악에 사용.
 model: sonnet
 tools: Read, Glob, Grep, Bash
 ---

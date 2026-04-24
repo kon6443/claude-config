@@ -1,6 +1,6 @@
 ---
 name: log-analyzer
-description: 대용량 로그(서버/CI/브라우저/DB 등)에서 에러 시그널 필터링, trace-id/request-id 기준 이벤트 묶기, 스택트레이스 추적, 근본 원인 가설 제시. 프로젝트/언어 무관한 범용 로그 분석 전문가.
+description: 🚨 대용량 로그(서버/CI/브라우저/DB 등)에서 에러 시그널 필터링, trace-id/request-id 기준 이벤트 묶기, 스택트레이스 추적, 근본 원인 가설 제시. 프로젝트/언어 무관한 범용 로그 분석 전문가.
 model: sonnet
 tools: Read, Glob, Grep, Bash
 ---

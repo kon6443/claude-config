@@ -11,9 +11,13 @@ claude-config/
 ├── settings.json            # 권한(allow/ask/deny), hooks, statusline, 플러그인
 ├── statusline-command.sh    # 하단 상태바 커스터마이징 스크립트
 ├── commands/
-│   └── review.md            # /review — 플로우 기반 QA 리뷰
+│   ├── review.md            # /review  — 플로우 기반 QA 리뷰
+│   └── pr-desc.md           # /pr-desc — 커밋 diff 기반 PR 제목/설명 생성
 └── agents/
-    └── cross-project-researcher.md  # 연관 프로젝트 코드 분석
+    ├── codebase-investigator.md     # 다중 파일·모듈 로직 추적
+    ├── cross-project-researcher.md  # 연관 프로젝트(프론트/백 등) 코드 분석
+    ├── git-history-researcher.md    # Git 변경 이력 추적
+    └── log-analyzer.md              # 대용량 로그 근본 원인 분석
 ```
 
 ### 파일별 역할
@@ -21,10 +25,24 @@ claude-config/
 | 파일 | 설명 |
 |------|------|
 | `CLAUDE.md` | 모든 프로젝트에 적용되는 AI 작업 원칙, 워크플로우, 코딩 컨벤션 |
-| `settings.json` | permissions(allow/ask/deny), defaultMode, hooks, statusline, 플러그인 |
+| `settings.json` | permissions(allow/ask/deny), defaultMode, hooks, statusline, 플러그인, env |
 | `statusline-command.sh` | 프롬프트 하단 상태바 — 컨텍스트 잔량, 세션 사용량, Git 브랜치, 모델명 등 표시 |
-| `commands/review.md` | `/review` 슬래시 커맨드 — 변경 코드 QA 리뷰 |
-| `agents/cross-project-researcher.md` | 연관 프로젝트(프론트/백 등) 코드 분석 에이전트 |
+
+#### commands/ — 슬래시 커맨드
+
+| 커맨드 | 설명 |
+|--------|------|
+| `/review` | 변경 코드 QA 리뷰. 측정·실행 기반 판단만 허용(추측·"~정도" 표현 불합격) |
+| `/pr-desc` | 커밋 diff 기반 PR 제목·설명 한국어 자동 생성 |
+
+#### agents/ — 서브에이전트
+
+| 에이전트 | 설명 |
+|----------|------|
+| `codebase-investigator` | 3개 이상 파일 읽기 또는 복잡한 호출 체인 추적. 구조화 리포트 반환, 불확실한 부분은 "메인 검증 요청" 명시 |
+| `cross-project-researcher` | 프론트↔백 등 연관 프로젝트 코드 조사로 스펙 불일치 사전 방지 |
+| `git-history-researcher` | 특정 파일/함수/라인의 변경 이력을 커밋·PR 기반으로 요약. 버그 도입 시점 역추적에 유용 |
+| `log-analyzer` | 서버/CI/브라우저/DB 로그에서 에러 필터링, trace-id 묶기, 스택트레이스 추적 |
 
 ## 새 컴퓨터 셋업
 
@@ -55,16 +73,23 @@ done
 
 | 구분 | 동작 | 예시 |
 |------|------|------|
-| `allow` | 묻지 않고 자동 실행 | `git status`, `pnpm build`, `grep` 등 |
-| `ask` | 항상 허가 확인 | `git push`, `git commit`, `rm`, `docker` 등 |
-| `deny` | 무조건 차단 (허가 불가) | `rm -rf /`, `git push --force`, `cat ~/.ssh/*` 등 |
-| `defaultMode: auto` | allow/ask/deny에 해당 안 되면 AI가 위험도 판단 | - |
+| `allow` | 묻지 않고 자동 실행 | `git status/log/diff/branch/show/fetch`, `pnpm`, `npx eslint/jest/tsc`, `grep`, `find`, `jq`, `gh`, `WebSearch` 등 |
+| `ask` | 항상 허가 확인 | `git push`, `git commit`, `git merge/rebase/stash/tag`, `docker`, `rm` |
+| `deny` | 무조건 차단 (허가 불가) | `rm -rf /`, `git push --force`, `git reset --hard`, `cat ~/.ssh/*`, `cat */.env*`, `curl \| bash`, `npm publish`, `Edit/Write(~/.claude/**)` 등 |
+| `defaultMode: default` | 위 3종에 해당 안 되면 기본 허가 프롬프트 표시 | - |
 
 ### hooks
 
 | 이벤트 | 동작 |
 |--------|------|
-| `Notification` | 작업 완료/입력 대기 시 macOS 알림센터 팝업 |
+| `Notification` | 작업 완료/입력 대기 시 macOS(`osascript`) 또는 Linux(`notify-send`) 알림 |
+
+### 플러그인 / 마켓플레이스
+
+| 항목 | 값 |
+|------|-----|
+| `enabledPlugins` | `figma@claude-plugins-official`, `redis-development@redis` |
+| `extraKnownMarketplaces.redis` | `https://github.com/redis/agent-skills.git` |
 
 ### 기타
 
@@ -72,8 +97,8 @@ done
 |------|-----|------|
 | `language` | Korean | 응답 언어 |
 | `showTurnDuration` | true | 턴별 소요시간 표시 |
-| `attribution` | 빈 문자열 | Co-Authored-By 미표시 |
-| `env.CLAUDE_CODE_NO_FLICKER` | 1 | 화면 깜빡임 방지 |
+| `attribution.commit` / `attribution.pr` | `""` | Co-Authored-By·PR 꼬리말 미표시 |
+| `env.CLAUDE_CODE_NO_FLICKER` | `1` | 화면 깜빡임 방지 |
 
 ## statusline-command.sh 표시 항목
 

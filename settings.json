@@ -107,6 +107,18 @@
     "defaultMode": "default"
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh ~/.claude/audit-log.sh",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
     "Notification": [
       {
         "matcher": "*",

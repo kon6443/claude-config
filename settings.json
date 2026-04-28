@@ -92,7 +92,22 @@
       "Edit(~/dotfiles/**)",
       "Edit(~/.claude/**)",
       "Write(~/dotfiles/**)",
-      "Write(~/.claude/**)"
+      "Write(~/.claude/**)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.gnupg/**)",
+      "Read(**/.env)",
+      "Read(**/.env.local)",
+      "Read(**/.env.local.*)",
+      "Read(**/.env.development)",
+      "Read(**/.env.staging)",
+      "Read(**/.env.production)",
+      "Read(**/.env.prod)",
+      "Read(**/credentials*)",
+      "Read(**/id_rsa*)",
+      "Read(**/id_ed25519*)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)"
     ],
     "ask": [
       "Bash(git push *)",
@@ -127,6 +142,17 @@
             "type": "command",
             "command": "if command -v osascript >/dev/null 2>&1; then osascript -e 'display notification \"Claude Code needs your attention\" with title \"Claude Code\"'; elif command -v notify-send >/dev/null 2>&1; then notify-send 'Claude Code' 'Claude Code needs your attention'; fi",
             "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh ~/.claude/check-secrets.sh",
+            "timeout": 3
           }
         ]
       }

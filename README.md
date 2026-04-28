@@ -46,26 +46,54 @@ claude-config/
 | `git-history-researcher` | 특정 파일/함수/라인의 변경 이력을 커밋·PR 기반으로 요약. 버그 도입 시점 역추적에 유용 |
 | `log-analyzer` | 서버/CI/브라우저/DB 로그에서 에러 필터링, trace-id 묶기, 스택트레이스 추적 |
 
-## 새 컴퓨터 셋업
+## 셋업 (멱등 — 재실행 안전)
 
 ```bash
-# 1. 클론
-git clone git@github.com:kon6443/claude-config.git ~/dotfiles/claude-config
+# 1. 클론 (이미 있으면 skip)
+[ -d ~/dotfiles/claude-config ] || git clone git@github.com:kon6443/claude-config.git ~/dotfiles/claude-config
 
-# 2. 심링크 (기존 파일이 있으면 백업 후 연결)
+# 2. 심링크 (이미 올바른 링크면 skip / 기존 다른 파일은 타임스탬프 백업)
+mkdir -p ~/.claude
+TS=$(date +%Y%m%d_%H%M%S)
 for f in commands CLAUDE.md agents settings.json statusline-command.sh; do
-  [ -e ~/.claude/$f ] && mv ~/.claude/$f ~/.claude/$f.bak
-  ln -s ~/dotfiles/claude-config/$f ~/.claude/$f
+  src="$HOME/dotfiles/claude-config/$f"
+  dst="$HOME/.claude/$f"
+
+  if [ -L "$dst" ] && [ "$(readlink "$dst")" = "$src" ]; then
+    echo "✓ $f: 이미 연결됨, skip"
+    continue
+  fi
+
+  if [ -e "$dst" ] || [ -L "$dst" ]; then
+    mv "$dst" "$dst.bak.$TS"
+    echo "  $f: 백업 → $f.bak.$TS"
+  fi
+
+  ln -s "$src" "$dst"
+  echo "✓ $f: 연결됨"
 done
 ```
 
-## 원커맨드 셋업 (클론 + 심링크)
+### 멱등성 보장 동작
+
+| 상황 | 동작 |
+|---|---|
+| `~/.claude/`가 없음 | `mkdir -p`로 생성 |
+| 이미 올바른 심링크 존재 | skip (백업도 안 만듦) |
+| 다른 파일/디렉토리 존재 | `타임스탬프.bak`로 백업 후 새로 링크 |
+| Broken 심링크 존재 | 백업 처리 후 새로 링크 |
+| 같은 스크립트 재실행 | 첫 실행 후로는 모두 skip |
+
+## 원커맨드 셋업 (한 줄로 실행)
 
 ```bash
-git clone git@github.com:kon6443/claude-config.git ~/dotfiles/claude-config && \
+[ -d ~/dotfiles/claude-config ] || git clone git@github.com:kon6443/claude-config.git ~/dotfiles/claude-config; \
+mkdir -p ~/.claude; TS=$(date +%Y%m%d_%H%M%S); \
 for f in commands CLAUDE.md agents settings.json statusline-command.sh; do \
-  [ -e ~/.claude/$f ] && mv ~/.claude/$f ~/.claude/$f.bak; \
-  ln -s ~/dotfiles/claude-config/$f ~/.claude/$f; \
+  src="$HOME/dotfiles/claude-config/$f"; dst="$HOME/.claude/$f"; \
+  if [ -L "$dst" ] && [ "$(readlink "$dst")" = "$src" ]; then echo "✓ $f: skip"; continue; fi; \
+  if [ -e "$dst" ] || [ -L "$dst" ]; then mv "$dst" "$dst.bak.$TS"; fi; \
+  ln -s "$src" "$dst"; echo "✓ $f: 연결됨"; \
 done
 ```
 

@@ -11,8 +11,9 @@ claude-config/
 ├── settings.json            # 권한(allow/ask/deny), hooks, statusline, 플러그인
 ├── statusline-command.sh    # 하단 상태바 커스터마이징 스크립트
 ├── commands/
-│   ├── review.md            # /review  — 플로우 기반 QA 리뷰
-│   └── pr-desc.md           # /pr-desc — 커밋 diff 기반 PR 제목/설명 생성
+│   ├── review.md            # /review          — 플로우 기반 QA 리뷰
+│   ├── pr-desc.md           # /pr-desc         — 커밋 diff 기반 PR 제목/설명 생성
+│   └── tasks-dashboard.md   # /tasks-dashboard — 태스크 파일 분석 + 진행 상황 대시보드
 └── agents/
     ├── codebase-investigator.md     # 다중 파일·모듈 로직 추적
     ├── cross-project-researcher.md  # 연관 프로젝트(프론트/백 등) 코드 분석
@@ -34,6 +35,7 @@ claude-config/
 |--------|------|
 | `/review` | 변경 코드 QA 리뷰. 측정·실행 기반 판단만 허용(추측·"~정도" 표현 불합격) |
 | `/pr-desc` | 커밋 diff 기반 PR 제목·설명 한국어 자동 생성 |
+| `/tasks-dashboard` | 태스크 파일을 다중 테이블 대시보드로 요약. 태스크와 현재 코드 상태를 직접 비교하여 누락 업데이트는 사용자 승인 후 반영. 프로젝트 타입 자동 감지로 커스텀 컬럼 추가 |
 
 #### agents/ — 서브에이전트
 
@@ -125,6 +127,7 @@ done
 - 컨벤션 (날짜 처리, 에러 핸들링, 네이밍 등)
 - 연관 프로젝트 경로 (예: `../project-front`)
 - 태스크 관리 경로 (체크리스트, lessons 파일 위치)
+- (선택) `/tasks-dashboard` 커스텀 컬럼 정의 — `## Task Dashboard Custom Columns` 섹션
 
 ### 선택: 프로젝트 로컬 설정
 

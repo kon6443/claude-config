@@ -6,8 +6,8 @@ cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // empty')
 model=$(echo "$input" | jq -r '.model.display_name // empty')
 remaining=$(echo "$input" | jq -r '(.context_window.remaining_percentage // (.context_window.used_percentage | if . then (100 - .) else null end)) // empty')
 rate_5h_used=$(echo "$input" | jq -r 'if .rate_limits.five_hour.used_percentage != null then .rate_limits.five_hour.used_percentage else empty end')
+resets_at=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
 
-duration_ms=$(echo "$input" | jq -r '.cost.total_duration_ms // empty')
 lines_added=$(echo "$input" | jq -r '.cost.total_lines_added // empty')
 lines_removed=$(echo "$input" | jq -r '.cost.total_lines_removed // empty')
 
@@ -19,16 +19,19 @@ if git -C "$cwd" rev-parse --git-dir > /dev/null 2>&1; then
   git_branch=$(git -C "$cwd" symbolic-ref --short HEAD 2>/dev/null || git -C "$cwd" rev-parse --short HEAD 2>/dev/null)
 fi
 
-# Format duration (ms → Xm Ys)
-duration=""
-if [ -n "$duration_ms" ]; then
-  total_sec=$((duration_ms / 1000))
-  min=$((total_sec / 60))
-  sec=$((total_sec % 60))
-  if [ "$min" -gt 0 ]; then
-    duration="${min}m${sec}s"
-  else
-    duration="${sec}s"
+# 5h session reset countdown (resets_at은 unix epoch seconds)
+session_left=""
+if [ -n "$resets_at" ]; then
+  now=$(date +%s)
+  diff=$((resets_at - now))
+  if [ "$diff" -gt 0 ]; then
+    hr=$((diff / 3600))
+    min=$(((diff % 3600) / 60))
+    if [ "$hr" -gt 0 ]; then
+      session_left="${hr}h${min}m"
+    else
+      session_left="${min}m"
+    fi
   fi
 fi
 
@@ -66,8 +69,9 @@ if [ -n "$rate_5h_used" ]; then
 fi
 
 
-if [ -n "$duration" ]; then
-  parts="${parts} · ⏱ ${duration}"
+# 5h session reset countdown
+if [ -n "$session_left" ]; then
+  parts="${parts} · ⏱ ${session_left}"
 fi
 
 if [ -n "$lines" ]; then

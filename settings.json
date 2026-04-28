@@ -1,7 +1,10 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
-    "CLAUDE_CODE_NO_FLICKER": "1"
+    "CLAUDE_CODE_NO_FLICKER": "1",
+    "BASH_DEFAULT_TIMEOUT_MS": "120000",
+    "BASH_MAX_TIMEOUT_MS": "600000",
+    "MAX_MCP_OUTPUT_TOKENS": "25000"
   },
   "attribution": {
     "commit": "",
@@ -16,20 +19,34 @@
       "Bash(git show:*)",
       "Bash(git fetch:*)",
       "Bash(pnpm:*)",
+      "Bash(npm:*)",
+      "Bash(yarn:*)",
       "Bash(npx eslint:*)",
       "Bash(npx jest:*)",
       "Bash(npx tsc:*)",
       "Bash(ls:*)",
       "Bash(node:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
       "Bash(grep:*)",
       "Bash(find:*)",
       "Bash(wc:*)",
       "Bash(sort:*)",
+      "Bash(uniq:*)",
       "Bash(awk:*)",
+      "Bash(sed:*)",
       "Bash(cat:*)",
       "Bash(head:*)",
       "Bash(tail:*)",
+      "Bash(diff:*)",
       "Bash(jq:*)",
+      "Bash(test:*)",
+      "Bash(echo:*)",
+      "Bash(date:*)",
+      "Bash(xargs:*)",
+      "Bash(tee:*)",
+      "Bash(make:*)",
+      "Bash(curl:*)",
       "Bash(claude:*)",
       "Bash(gh:*)",
       "WebSearch"
@@ -90,6 +107,18 @@
     "defaultMode": "default"
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh ~/.claude/audit-log.sh",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
     "Notification": [
       {
         "matcher": "*",

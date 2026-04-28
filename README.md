@@ -10,6 +10,7 @@ claude-config/
 ├── CLAUDE.md                # 글로벌 AI 코딩 에이전트 가이드라인
 ├── settings.json            # 권한(allow/ask/deny), hooks, statusline, 플러그인
 ├── statusline-command.sh    # 하단 상태바 커스터마이징 스크립트
+├── audit-log.sh             # Bash 명령어 감사 로그 (PreToolUse hook 전용)
 ├── commands/
 │   ├── review.md            # /review          — 플로우 기반 QA 리뷰
 │   ├── pr-desc.md           # /pr-desc         — 커밋 diff 기반 PR 제목/설명 생성
@@ -28,6 +29,7 @@ claude-config/
 | `CLAUDE.md` | 모든 프로젝트에 적용되는 AI 작업 원칙, 워크플로우, 코딩 컨벤션 |
 | `settings.json` | permissions(allow/ask/deny), defaultMode, hooks, statusline, 플러그인, env |
 | `statusline-command.sh` | 프롬프트 하단 상태바 — 컨텍스트 잔량, 세션 사용량, Git 브랜치, 모델명 등 표시 |
+| `audit-log.sh` | PreToolUse hook이 호출하는 Bash 명령어 감사 로그 스크립트 (`~/.claude/audit.log`에 누적) |
 
 #### commands/ — 슬래시 커맨드
 
@@ -55,7 +57,7 @@ claude-config/
 # 2. 심링크 (이미 올바른 링크면 skip / 기존 다른 파일은 타임스탬프 백업)
 mkdir -p ~/.claude
 TS=$(date +%Y%m%d_%H%M%S)
-for f in commands CLAUDE.md agents settings.json statusline-command.sh; do
+for f in commands CLAUDE.md agents settings.json statusline-command.sh audit-log.sh; do
   src="$HOME/dotfiles/claude-config/$f"
   dst="$HOME/.claude/$f"
 
@@ -89,7 +91,7 @@ done
 ```bash
 [ -d ~/dotfiles/claude-config ] || git clone git@github.com:kon6443/claude-config.git ~/dotfiles/claude-config; \
 mkdir -p ~/.claude; TS=$(date +%Y%m%d_%H%M%S); \
-for f in commands CLAUDE.md agents settings.json statusline-command.sh; do \
+for f in commands CLAUDE.md agents settings.json statusline-command.sh audit-log.sh; do \
   src="$HOME/dotfiles/claude-config/$f"; dst="$HOME/.claude/$f"; \
   if [ -L "$dst" ] && [ "$(readlink "$dst")" = "$src" ]; then echo "✓ $f: skip"; continue; fi; \
   if [ -e "$dst" ] || [ -L "$dst" ]; then mv "$dst" "$dst.bak.$TS"; fi; \
@@ -112,7 +114,23 @@ done
 
 | 이벤트 | 동작 |
 |--------|------|
+| `PreToolUse` (matcher: `Bash`) | `audit-log.sh` 실행 — 모든 Bash 명령어를 `~/.claude/audit.log`에 timestamp + cwd + command 형식으로 누적 |
 | `Notification` | 작업 완료/입력 대기 시 macOS(`osascript`) 또는 Linux(`notify-send`) 알림 |
+
+#### 감사 로그 운영
+
+```bash
+# 최근 50개 명령어 확인
+tail -50 ~/.claude/audit.log
+
+# 특정 키워드 검색
+grep "git push" ~/.claude/audit.log
+
+# 로그 트리밍 (최근 5000줄만 유지)
+tail -5000 ~/.claude/audit.log > /tmp/audit.tmp && mv /tmp/audit.tmp ~/.claude/audit.log
+```
+
+> 로그 파일(`~/.claude/audit.log`)은 컴퓨터별로 독립 누적되며 dotfiles에 동기화되지 않음.
 
 ### 플러그인 / 마켓플레이스
 
@@ -121,6 +139,15 @@ done
 | `enabledPlugins` | `figma@claude-plugins-official`, `redis-development@redis` |
 | `extraKnownMarketplaces.redis` | `https://github.com/redis/agent-skills.git` |
 
+### env 변수
+
+| 키 | 값 | 설명 |
+|---|---|---|
+| `CLAUDE_CODE_NO_FLICKER` | `1` | 화면 깜빡임 방지 |
+| `BASH_DEFAULT_TIMEOUT_MS` | `120000` | Bash 기본 timeout (2분) |
+| `BASH_MAX_TIMEOUT_MS` | `600000` | Bash 최대 timeout (10분) |
+| `MAX_MCP_OUTPUT_TOKENS` | `25000` | MCP 응답 폭주 방지 (컨텍스트 보호) |
+
 ### 기타
 
 | 설정 | 값 | 설명 |
@@ -128,7 +155,6 @@ done
 | `language` | Korean | 응답 언어 |
 | `showTurnDuration` | true | 턴별 소요시간 표시 |
 | `attribution.commit` / `attribution.pr` | `""` | Co-Authored-By·PR 꼬리말 미표시 |
-| `env.CLAUDE_CODE_NO_FLICKER` | `1` | 화면 깜빡임 방지 |
 
 ## statusline-command.sh 표시 항목
 
@@ -139,7 +165,7 @@ done
 | `🧠 Opus` | 사용 중인 모델 |
 | `⏳ 87%` | 컨텍스트 윈도우 잔량 |
 | `🔋 session 38%` | 5시간 세션 사용량 잔량 |
-| `⏱ 3m25s` | 세션 누적 응답시간 |
+| `⏱ 4h12m` | 5시간 세션 리셋까지 남은 시간 |
 | `📊 +150/-30` | 코드 변경량 |
 
 ## 새 프로젝트 로컬 설정

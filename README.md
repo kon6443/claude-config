@@ -11,6 +11,7 @@ claude-config/
 ├── settings.json            # 권한(allow/ask/deny), hooks, statusline, 플러그인
 ├── statusline-command.sh    # 하단 상태바 커스터마이징 스크립트
 ├── audit-log.sh             # Bash 명령어 감사 로그 (PreToolUse hook 전용)
+├── check-secrets.sh        # 프롬프트 시크릿 검출 (UserPromptSubmit hook 전용)
 ├── commands/
 │   ├── review.md            # /review          — 플로우 기반 QA 리뷰
 │   ├── pr-desc.md           # /pr-desc         — 커밋 diff 기반 PR 제목/설명 생성
@@ -29,6 +30,7 @@ claude-config/
 | `CLAUDE.md` | 모든 프로젝트에 적용되는 AI 작업 원칙, 워크플로우, 코딩 컨벤션 |
 | `settings.json` | permissions(allow/ask/deny), defaultMode, hooks, statusline, 플러그인, env |
 | `statusline-command.sh` | 프롬프트 하단 상태바 — 컨텍스트 잔량, 세션 사용량, Git 브랜치, 모델명 등 표시 |
+| `check-secrets.sh` | UserPromptSubmit hook이 호출하는 시크릿 패턴 검출 스크립트. API 키/토큰/개인키 패턴 발견 시 프롬프트 차단 |
 | `audit-log.sh` | PreToolUse hook이 호출하는 Bash 명령어 감사 로그 스크립트 (`~/.claude/audit.log`에 누적) |
 
 #### commands/ — 슬래시 커맨드
@@ -57,7 +59,7 @@ claude-config/
 # 2. 심링크 (이미 올바른 링크면 skip / 기존 다른 파일은 타임스탬프 백업)
 mkdir -p ~/.claude
 TS=$(date +%Y%m%d_%H%M%S)
-for f in commands CLAUDE.md agents settings.json statusline-command.sh audit-log.sh; do
+for f in commands CLAUDE.md agents settings.json statusline-command.sh audit-log.sh check-secrets.sh; do
   src="$HOME/dotfiles/claude-config/$f"
   dst="$HOME/.claude/$f"
 
@@ -91,7 +93,7 @@ done
 ```bash
 [ -d ~/dotfiles/claude-config ] || git clone git@github.com:kon6443/claude-config.git ~/dotfiles/claude-config; \
 mkdir -p ~/.claude; TS=$(date +%Y%m%d_%H%M%S); \
-for f in commands CLAUDE.md agents settings.json statusline-command.sh audit-log.sh; do \
+for f in commands CLAUDE.md agents settings.json statusline-command.sh audit-log.sh check-secrets.sh; do \
   src="$HOME/dotfiles/claude-config/$f"; dst="$HOME/.claude/$f"; \
   if [ -L "$dst" ] && [ "$(readlink "$dst")" = "$src" ]; then echo "✓ $f: skip"; continue; fi; \
   if [ -e "$dst" ] || [ -L "$dst" ]; then mv "$dst" "$dst.bak.$TS"; fi; \
@@ -107,13 +109,14 @@ done
 |------|------|------|
 | `allow` | 묻지 않고 자동 실행 | `git status/log/diff/branch/show/fetch`, `pnpm`, `npx eslint/jest/tsc`, `grep`, `find`, `jq`, `gh`, `WebSearch` 등 |
 | `ask` | 항상 허가 확인 | `git push`, `git commit`, `git merge/rebase/stash/tag`, `docker`, `rm` |
-| `deny` | 무조건 차단 (허가 불가) | `rm -rf /`, `git push --force`, `git reset --hard`, `cat ~/.ssh/*`, `cat */.env*`, `curl \| bash`, `npm publish`, `Edit/Write(~/.claude/**)` 등 |
+| `deny` | 무조건 차단 (허가 불가) | `rm -rf /`, `git push --force`, `git reset --hard`, `cat ~/.ssh/*`, `cat */.env*`, `curl \| bash`, `npm publish`, `Read(~/.ssh/**)`, `Read(**/.env*)`, `Read(**/*.pem)`, `Edit/Write(~/.claude/**)` 등 |
 | `defaultMode: default` | 위 3종에 해당 안 되면 기본 허가 프롬프트 표시 | - |
 
 ### hooks
 
 | 이벤트 | 동작 |
 |--------|------|
+| `UserPromptSubmit` | `check-secrets.sh` 실행 — 프롬프트에 시크릿 패턴(API key, 토큰, 개인키) 발견 시 모델 전송 전 차단 |
 | `PreToolUse` (matcher: `Bash`) | `audit-log.sh` 실행 — 모든 Bash 명령어를 `~/.claude/audit.log`에 timestamp + cwd + command 형식으로 누적 |
 | `Notification` | 작업 완료/입력 대기 시 macOS(`osascript`) 또는 Linux(`notify-send`) 알림 |
 

@@ -1,0 +1,12 @@
+# 백업 파일 (cp ...bak.* 흔적)
+*.bak
+*.bak.*
+
+# 임시 파일
+*.tmp
+.DS_Store
+
+# 로컬 전용 (머신별 오버라이드 — 추후 도입 검토)
+*.local
+CLAUDE.local.md
+settings.local.json

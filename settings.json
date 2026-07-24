@@ -142,6 +142,11 @@
             "type": "command",
             "command": "sh ~/.claude/audit-log.sh",
             "timeout": 2
+          },
+          {
+            "type": "command",
+            "command": "sh ~/.claude/db-guard.sh",
+            "timeout": 5
           }
         ]
       }

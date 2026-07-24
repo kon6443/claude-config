@@ -121,6 +121,7 @@
     ],
     "defaultMode": "default"
   },
+  "model": "opus[1m]",
   "hooks": {
     "SessionStart": [
       {
@@ -192,5 +193,6 @@
     }
   },
   "language": "Korean",
+  "effortLevel": "xhigh",
   "showTurnDuration": true
 }

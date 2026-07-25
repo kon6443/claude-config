@@ -2,7 +2,8 @@
 # Claude Code SessionStart hook
 #
 # 동작:
-#  1) audit.log 일 1회 회전 (gzip 압축, 30일 후 삭제)
+#  0) ~/.claude 심링크 자동 복구 (repo에 새 파일 추가 후 셋업 재실행을 잊어도 자동 연결)
+#  1) audit.log 일 1회 회전 (gzip 압축, 30일 후 삭제) + 30일 초과 *.bak.* 정리
 #  2) 1MB 초과 시 즉시 trim (회전 사이 폭주 방어)
 #  3) 직전 활동 요약 (cwd 매칭, 노이즈 필터, 시크릿 마스킹, 24h 윈도)
 #  4) 24h 위험 명령 강조 (reset --hard / force push / --no-verify / rm -rf 등)
@@ -27,6 +28,31 @@ if command -v jq >/dev/null 2>&1 && [ -n "$input" ]; then
 fi
 [ -z "$cwd" ] && cwd="$PWD"
 
+output=""
+
+# ─────────────────────────────────────────────────────────
+# (0) ~/.claude 심링크 자동 복구
+#     setup.sh와 동일한 동적 대상(*.sh 글롭 + 고정 항목).
+#     누락된 링크만 생성 — 실파일/타 경로 링크는 건드리지 않음(setup.sh 몫).
+# ─────────────────────────────────────────────────────────
+repo="$HOME/dotfiles/claude-config"
+if [ -d "$repo" ]; then
+  for src in "$repo"/*.sh "$repo/CLAUDE.md" "$repo/settings.json" \
+             "$repo/agents" "$repo/commands" "$repo/rules" "$repo/templates"; do
+    [ -e "$src" ] || continue
+    name=$(basename "$src")
+    case "$name" in setup.sh|verify.sh) continue ;; esac   # repo에서 직접 실행 — 링크 불필요
+    dst="$HOME/.claude/$name"
+    # 이미 뭔가 존재(정상 링크·실파일·타 경로 링크)하면 존중하고 통과 — 교체는 setup.sh 몫
+    if [ ! -e "$dst" ] && [ ! -L "$dst" ]; then
+      if ln -s "$src" "$dst" 2>/dev/null; then
+        output="${output}🔧 심링크 자동 복구: $name → dotfiles
+"
+      fi
+    fi
+  done
+fi
+
 # ─────────────────────────────────────────────────────────
 # (1) audit.log 일 1회 회전
 # ─────────────────────────────────────────────────────────
@@ -36,7 +62,8 @@ last=""
 
 if [ -f "$log" ] && [ "$today" != "$last" ]; then
   if [ -s "$log" ]; then
-    stamp="${last:-$(date -r "$log" +%Y-%m-%d 2>/dev/null || echo init)}"
+    # 파일 mtime 날짜: GNU(date -r) → BSD/macOS(stat -f) 순서로 시도
+    stamp="${last:-$(date -r "$log" +%Y-%m-%d 2>/dev/null || stat -f %Sm -t %Y-%m-%d "$log" 2>/dev/null || echo init)}"
     target="$backup_dir/audit.log.$stamp.gz"
     # 같은 날짜 백업이 이미 있으면 append (방어)
     if [ -f "$target" ]; then
@@ -50,6 +77,9 @@ if [ -f "$log" ] && [ "$today" != "$last" ]; then
 
   # 30일 초과 압축 백업 삭제
   find "$backup_dir" -maxdepth 1 -name 'audit.log.*.gz' -mtime +30 -delete 2>/dev/null || true
+
+  # 30일 초과 셋업 백업(*.bak.*) 정리 — setup.sh 교체 시 생성된 잔재
+  find "$HOME/.claude" -maxdepth 1 -name '*.bak.*' -mtime +30 -delete 2>/dev/null || true
 fi
 
 # ─────────────────────────────────────────────────────────
@@ -66,7 +96,6 @@ fi
 # ─────────────────────────────────────────────────────────
 # (3)(4) 요약 + 위험 명령 (모두 stdout)
 # ─────────────────────────────────────────────────────────
-output=""
 
 # 시크릿 마스킹 sed 표현식 (stdout 노출 방지)
 mask='s/(token|password|secret|api[_-]?key|authorization|bearer)[^[:space:]]*/[REDACTED]/gI; s/(sk-[A-Za-z0-9_-]{8,}|ghp_[A-Za-z0-9]{8,}|gho_[A-Za-z0-9]{8,}|ghs_[A-Za-z0-9]{8,}|github_pat_[A-Za-z0-9_]{8,}|AKIA[0-9A-Z]{8,}|xox[baprs]-[0-9A-Za-z-]{8,})/[REDACTED]/g'

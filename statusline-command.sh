@@ -5,8 +5,9 @@ input=$(cat)
 cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // empty')
 model=$(echo "$input" | jq -r '.model.display_name // empty')
 remaining=$(echo "$input" | jq -r '(.context_window.remaining_percentage // (.context_window.used_percentage | if . then (100 - .) else null end)) // empty')
-rate_5h_used=$(echo "$input" | jq -r 'if .rate_limits.five_hour.used_percentage != null then .rate_limits.five_hour.used_percentage else empty end')
-resets_at=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
+# POSIX 산술($((...)))에 들어가는 값은 소수 유입 대비 floor로 정수화
+rate_5h_used=$(echo "$input" | jq -r 'if .rate_limits.five_hour.used_percentage != null then (.rate_limits.five_hour.used_percentage | floor) else empty end' 2>/dev/null)
+resets_at=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty | floor' 2>/dev/null)
 
 lines_added=$(echo "$input" | jq -r '.cost.total_lines_added // empty')
 lines_removed=$(echo "$input" | jq -r '.cost.total_lines_removed // empty')

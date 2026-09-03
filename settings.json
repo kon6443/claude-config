@@ -46,10 +46,17 @@
       "Bash(xargs:*)",
       "Bash(tee:*)",
       "Bash(make:*)",
-      "Bash(curl:*)",
-      "Bash(claude:*)",
-      "Bash(gh:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh repo view:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh api repos/*)"
     ],
     "deny": [
       "Bash(rm -rf /)",
@@ -107,7 +114,12 @@
       "Read(**/id_rsa*)",
       "Read(**/id_ed25519*)",
       "Read(**/*.pem)",
-      "Read(**/*.key)"
+      "Read(**/*.key)",
+      "Bash(claude * --dangerously-skip-permissions*)",
+      "Bash(claude --dangerously-skip-permissions*)",
+      "Bash(gh repo delete*)",
+      "Bash(gh api -X DELETE*)",
+      "Bash(gh api --method DELETE*)"
     ],
     "ask": [
       "Bash(git push *)",
@@ -117,15 +129,20 @@
       "Bash(git stash *)",
       "Bash(git tag *)",
       "Bash(docker *)",
-      "Bash(rm *)"
+      "Bash(rm *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh pr create *)",
+      "Bash(gh release *)",
+      "Bash(gh secret *)",
+      "Bash(gh variable *)"
     ],
     "defaultMode": "default"
   },
-  "model": "opus[1m]",
+  "model": "claude-opus-5[1m]",
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "*",
+        "matcher": "startup|resume",
         "hooks": [
           {
             "type": "command",
@@ -194,6 +211,39 @@
   },
   "language": "Korean",
   "effortLevel": "xhigh",
+  "modelSettings": {
+    "claude-opus-5": {
+      "effortLevel": "xhigh"
+    }
+  },
+  "skipWorkflowUsageWarning": true,
   "showTurnDuration": true,
-  "skipWorkflowUsageWarning": true
+  "sandbox": {
+    "enabled": true,
+    "allowUnsandboxedCommands": true,
+    "filesystem": {
+      "denyRead": [
+        "~/.aws",
+        "~/.gnupg",
+        "~/.netrc",
+        "~/.config/gcloud",
+        "~/.kube"
+      ]
+    },
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "*.github.com",
+        "*.githubusercontent.com",
+        "registry.npmjs.org",
+        "*.npmjs.org",
+        "registry.yarnpkg.com",
+        "pypi.org",
+        "files.pythonhosted.org",
+        "*.anthropic.com",
+        "*.claude.ai",
+        "code.claude.com"
+      ]
+    }
+  }
 }

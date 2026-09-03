@@ -1,4 +1,13 @@
+---
+name: tasks-dashboard
+description: 프로젝트의 태스크 파일을 분석하여 현재 진행 상황을 대시보드 테이블로 요약합니다.
+argument-hint: "[all|recent|sync|<file>] [--include-git]"
+disable-model-invocation: true
+---
+
 프로젝트의 태스크 파일을 분석하여 현재 진행 상황을 대시보드 테이블로 요약합니다.
+
+인자: `$ARGUMENTS`
 사전에 현재 코드/파일 상태와 비교하여 누락된 업데이트가 있으면 사용자 승인 후 반영합니다.
 프로젝트 타입을 자동 감지하여 관련 커스텀 컬럼을 추가합니다.
 

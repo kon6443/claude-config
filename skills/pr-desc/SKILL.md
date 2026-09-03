@@ -1,4 +1,14 @@
+---
+name: pr-desc
+description: 커밋 diff 기반으로 PR 제목과 설명을 한국어로 자동 생성합니다.
+argument-hint: "[base-branch]"
+disable-model-invocation: true
+allowed-tools: Bash(git rev-parse:*) Bash(git log:*) Bash(git diff:*) Bash(git fetch:*)
+---
+
 커밋 diff 기반으로 PR 제목과 설명을 한국어로 자동 생성합니다.
+
+인자: `$ARGUMENTS`
 
 ## 절차
 

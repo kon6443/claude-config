@@ -102,7 +102,14 @@ git status --porcelain 2>/dev/null | grep -qE '\.bak(\.|$)' && bad "백업 파�
 
 echo "═══ 8. ~/.claude 심링크 (로컬에서만) ═══"
 if [ -d "$HOME/.claude" ]; then
-  for f in CLAUDE.md settings.json statusline-command.sh audit-log.sh check-secrets.sh sessionstart.sh db-guard.sh agents rules; do
+  # 대상을 하드코딩하지 않고 setup.sh 와 같은 방식(글롭)으로 만든다.
+  # 하드코딩하면 새 훅을 추가했을 때 setup.sh 는 연결하지만 여기서는 검사되지 않는다.
+  link_targets="CLAUDE.md settings.json agents rules"
+  for s in "$ROOT"/*.sh; do
+    [ -e "$s" ] || continue
+    link_targets="$link_targets $(basename "$s")"
+  done
+  for f in $link_targets; do
     link="$HOME/.claude/$f"
     if [ -L "$link" ] && [ "$(readlink "$link")" = "$ROOT/$f" ]; then ok "$f"
     elif [ -L "$link" ]; then bad "$f → $(readlink "$link") (다른 대상)"

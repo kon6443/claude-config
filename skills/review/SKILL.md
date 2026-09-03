@@ -1,4 +1,13 @@
+---
+name: review
+description: 변경된 코드에 대해 플로우 기반 QA 리뷰를 수행합니다.
+argument-hint: "[base-branch]"
+disable-model-invocation: true
+---
+
 변경된 코드에 대해 플로우 기반 QA 리뷰를 수행합니다.
+
+인자: `$ARGUMENTS`
 모든 판단은 **측정·실행 기반**으로만 진행합니다.
 - 근거 = 코드 직접 확인 · grep 전수 결과 · 실제 실행/측정 결과. 이외는 근거 아님.
   (단, **부정 단언**의 근거 요건은 아래 채점 규칙을 따른다 — grep 1회는 "없다"의 근거가 못 된다.)

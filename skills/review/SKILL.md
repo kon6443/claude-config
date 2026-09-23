@@ -2,7 +2,6 @@
 name: review
 description: 변경된 코드에 대해 플로우 기반 QA 리뷰를 수행합니다.
 argument-hint: "[base-branch]"
-disable-model-invocation: true
 ---
 
 변경된 코드에 대해 플로우 기반 QA 리뷰를 수행합니다.

@@ -35,8 +35,8 @@ claude-config/
 ├── audit-log.sh              # PreToolUse(Bash) — 명령 감사 로그 (기록 시점 마스킹, 600)
 ├── db-guard.sh               # PreToolUse(Bash) — 스크립트 런타임 경유 DB 접속·변경 게이트
 ├── check-secrets.sh          # UserPromptSubmit — 시크릿 패턴 차단
-├── rules/                    # 상황별 규칙 — 자동 로드. shell-portability.md 만 paths: 조건부
-├── skills/                   # 슬래시 커맨드 5종 (/plan /bugfix /review /pr-desc /tasks-dashboard)
+├── rules/                    # 상황별 규칙 — 자동 로드. shell-portability.md · task-folder.md 는 paths: 조건부
+├── skills/                   # 슬래시 커맨드 7종 (/plan /bugfix /review /pr-desc /tasks-dashboard /session-handoff /task-folder)
 ├── agents/                   # 읽기 전용 서브에이전트 4종
 ├── scripts/
 │   ├── setup.sh              #   새 머신 셋업 / 재동기화 (멱등, 훅 참조 무결성 검증)
@@ -64,6 +64,7 @@ claude-config/
 |---|---|---|
 | `engineering.md` `error-recovery.md` `git-hygiene.md` `workflow.md` `context.md` | 없음 (상시) | **작업 방식**에 대한 규칙이다. 언어·파일 종류와 무관하므로 조건을 걸면 필요할 때 로드되지 않는다 |
 | `shell-portability.md` | `**/*.sh` `**/*.bash` `**/*.zsh` | **파일 종류**에 대한 규칙이다. 셸을 안 건드리는 작업에서는 실릴 이유가 없다 |
+| `task-folder.md` | `**/tasks/*/{STATUS,DECISIONS,WORKLOG}.md` | 3층 태스크 폴더 유지 규칙. 그 파일을 열 때만 필요하다 |
 
 판단 기준은 하나다. **"이 규칙이 특정 파일 종류에만 참인가?"** 그렇다면 `paths:`를 붙이고, 아니면 붙이지 않는다.
 프로세스 규칙에 확장자 목록을 붙이면 목록에 없는 언어에서 규칙이 사라지므로 오히려 위험하다.
@@ -86,15 +87,28 @@ claude-config/
 
 ### db-guard 판정표
 
-대상: `node|python[3.x]|bun|deno|tsx|ts-node|npx|uv run|poetry run|pipenv run|pnpm/yarn exec|dlx|npm exec`로 시작하는 세그먼트. 명령 문자열 + 참조된 `.js/.ts/.py` 파일 내용을 스캔한다.
+대상: `node|python[3.x]|bun|deno|tsx|ts-node|npx|uv run|poetry run|pipenv run|pnpm/yarn exec|dlx|npm exec`로 시작하는 세그먼트(`VAR=값` 접두 포함). 명령 문자열 + 참조된 `.js/.ts/.py` 파일 내용을 스캔한다.
 
 | 쓰기 SQL 시그니처 | DB 접속 시그니처 | 판정 |
 |---|---|---|
 | 있음 | 있음 | **deny** (exit 2) |
 | 있음 | 없음 | ask — 주석/문자열 오탐 가능성 |
+| 없음 | 있음 (신뢰된 읽기 전용 러너) | 통과 — 아래 참조 |
 | 없음 | 있음 | ask — SELECT 등 읽기 포함 |
 | 실행 대상 코드 확인 불가 (REPL/파이프/확장자 없음) | | ask |
 | 둘 다 없음 | | 통과 |
+
+**신뢰된 읽기 전용 러너**: 프로젝트가 쓰기를 스스로 막는 조회 스크립트(READ ONLY 트랜잭션, 키워드 허용목록 등)를 두고, 본문에 `claude-db-guard: readonly-runner` 마커를 넣으면 확인 없이 통과한다. 다음 조건을 모두 만족해야 한다.
+
+- `<런타임> <상대경로> [인자…]` 단독 호출이어야 한다. 환경변수 접두, 래퍼(`env` 등), 런타임 플래그, 따옴표 밖 셸 메타문자, 명령 치환이 없어야 한다. 경로는 `[A-Za-z0-9_./-]`만 쓸 수 있고 `..`는 안 된다.
+- 러너는 cwd가 속한 저장소 안(루트 직속 제외)의 실파일이어야 하고, 바이트가 HEAD의 blob과 같아야 한다. 에이전트가 러너를 고치면 커밋, 즉 사람의 확인을 거치기 전까지 신뢰하지 않는다.
+- 러너 폴더에 미추적·무시 파일이 없어야 하고, 러너와 저장소 루트 사이 폴더에 `node_modules`가 없어야 한다. 옆에 둔 가짜 모듈로 의존성을 가리는 것을 막는다.
+- 명령 문자열에 쓰기 SQL이 없어야 한다.
+- 판정에 쓰는 git 명령은 `hash-object --no-filters`, `rev-parse HEAD:<경로>`처럼 필터와 fsmonitor를 실행하지 않는 것만 쓴다. 저장소 설정이 곧 코드 실행이 될 수 있기 때문이다.
+
+한계: 러너가 import하는 다른 추적 파일의 미커밋 수정, 저장소 루트 `node_modules` 변조, 에이전트가 직접 만든 저장소로 cwd를 옮기는 경우는 막지 않는다.
+
+통과는 게이트를 해제할 뿐이고, 허가는 일반 권한 규칙이 정한다. 확인 없이 돌리려면 프로젝트 `settings.json`에 `Bash(node scripts/<러너> *)`를 allow로 둔다. 실제 경계는 러너 내부의 READ ONLY 트랜잭션과 **SELECT 권한만 가진 DB 계정**이다. 이 훅은 보조 게이트다.
 
 긴급 우회: `CLAUDE_DB_GUARD=off` (audit.log에 명령이 남는다). 오탐 사례는 `tests/hooks/run.sh`에 픽스처로 추가한다.
 
@@ -145,7 +159,7 @@ sandbox 네트워크는 `allowedDomains` 밖의 호스트에 처음 접근할 �
 
 ## skills (슬래시 커맨드)
 
-`commands/`는 `skills/<name>/SKILL.md`로 이관했다 (공식: "Custom commands have been merged into skills"). 세 스킬 모두 `disable-model-invocation: true`로 사용자가 `/name`으로만 호출한다.
+`commands/`는 `skills/<name>/SKILL.md`로 이관했다 (공식: "Custom commands have been merged into skills"). 자동 호출 허용 여부는 아래 표의 마지막 열을 따른다.
 
 | 스킬 | 인자 | 용도 | 모델 자동 호출 |
 |---|---|---|---|
@@ -154,10 +168,14 @@ sandbox 네트워크는 `allowedDomains` 밖의 호스트에 처음 접근할 �
 | `/review` | `[base-branch]` | 플로우 기반 QA 리뷰 (범위 선언 → 추적 → 격리 반증) | 차단 |
 | `/pr-desc` | `[base-branch]` | 커밋 diff 기반 PR 제목·설명 생성 | 차단 |
 | `/tasks-dashboard` | `[all\|recent\|sync\|<file>] [--include-git]` | 태스크 파일 진행 대시보드 | 차단 |
+| `/session-handoff` | `[주제]` | 다른 세션에 넘기는 인계 프롬프트 (사실/가설 분리 · 재조사 금지 목록 · 한계) | 허용 |
+| `/task-folder` | `[작업명]` | STATUS·DECISIONS·WORKLOG 3층 태스크 폴더 생성 (유지 규칙은 `rules/task-folder.md`) | 허용 |
 
-`/plan`·`/bugfix`는 산출물 골격이라 모델이 상황에 맞춰 불러오는 게 이득이다.
-나머지 셋은 사용자가 의도적으로 돌리는 절차라 `disable-model-invocation: true`로 자동 호출을 막았다.
-이 둘은 예전에 `templates/`에 있던 것을 스킬로 옮긴 것이다 — 공식 문서가 "여러 단계 절차나 일부 상황에서만 쓰는 내용은 스킬로 옮기라"고 권한다.
+> ⚠️ **스킬 이름 충돌**: 이름이 같으면 **personal(글로벌)이 project를 이긴다** (공식 문서: "Enterprise over personal, and personal over project"). 글로벌 스킬에 흔한 이름(`handoff`, `task-doc` 등)을 쓰면 프로젝트의 같은 이름 스킬이 영구히 가려진다. 글로벌 스킬은 구체적인 이름을 쓰고, 프로젝트 특화판은 `review-<접미>`처럼 다른 이름으로 만든다.
+
+`/plan`·`/bugfix`·`/session-handoff`·`/task-folder`는 산출물 골격이라 모델이 상황에 맞춰 불러오는 게 이득이다.
+`/review`·`/pr-desc`·`/tasks-dashboard`는 사용자가 의도적으로 돌리는 절차라 `disable-model-invocation: true`로 자동 호출을 막았다.
+`/plan`·`/bugfix`는 예전에 `templates/`에 있던 것을 스킬로 옮긴 것이다 — 공식 문서가 "여러 단계 절차나 일부 상황에서만 쓰는 내용은 스킬로 옮기라"고 권한다.
 
 `~/.claude/skills/`는 외부 스킬(`~/.agents/skills/*`)과 공존해야 하므로 디렉토리 전체가 아니라 **스킬별 심링크**를 건다 (`scripts/setup.sh`가 처리).
 

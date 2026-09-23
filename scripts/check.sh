@@ -17,9 +17,9 @@ for f in CLAUDE.md settings.json README.md .gitignore .gitattributes \
          sessionstart.sh audit-log.sh check-secrets.sh db-guard.sh statusline-command.sh \
          scripts/strip-orca.sh scripts/setup.sh scripts/check.sh tests/hooks/run.sh \
          rules/workflow.md rules/context.md rules/engineering.md rules/error-recovery.md rules/git-hygiene.md \
-         rules/shell-portability.md \
+         rules/shell-portability.md rules/task-folder.md \
          skills/pr-desc/SKILL.md skills/review/SKILL.md skills/tasks-dashboard/SKILL.md \
-         skills/plan/SKILL.md skills/bugfix/SKILL.md \
+         skills/plan/SKILL.md skills/bugfix/SKILL.md skills/session-handoff/SKILL.md skills/task-folder/SKILL.md \
          docs/claude-code-concepts.md docs/decisions.md; do
   [ -e "$f" ] && ok "$f" || bad "MISSING $f"
 done

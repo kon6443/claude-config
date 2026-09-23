@@ -62,6 +62,59 @@ run_guard "$W" "ls -la && git status";  check "런타임 아님 → 통과" 0 ""
 run_guard "$W" "node seed";            check "확장자 없는 파일(미확인) → ask" 0 '"ask"' "$rc" "$out"
 out=$(payload "$W" "node seed.js" | CLAUDE_DB_GUARD=off sh "$ROOT/db-guard.sh" 2>/dev/null); rc=$?
 check "CLAUDE_DB_GUARD=off → 통과" 0 "" "$rc" "$out"
+# 환경변수 접두 하나로 가드 전체를 건너뛰던 구멍
+run_guard "$W" "NODE_OPTIONS= node seed.js"; check "환경변수 접두 + 쓰기 스크립트 → deny" 2 "" "$rc" "$out"
+run_guard "$W" "X=\\\"a b\\\" node seed.js"; check "따옴표 값 환경변수 접두 → deny" 2 "" "$rc" "$out"
+run_guard "$W" "env node seed.js";          check "env 래퍼 → deny" 2 "" "$rc" "$out"
+run_guard "$W" "command node seed.js";      check "command 래퍼 → deny" 2 "" "$rc" "$out"
+run_guard "$W" "(node seed.js)";            check "서브셸 → deny" 2 "" "$rc" "$out"
+
+# 신뢰된 읽기 전용 러너: 마커 + HEAD blob 동일 + 저장소 안 + 단독 호출일 때만 통과
+if command -v git >/dev/null 2>&1; then
+  G="$TMP/g"; mkdir -p "$G/ro" "$G/u" "$G/d" "$G/l" "$G/nm/sub" "$G/p"
+  runner='// claude-db-guard: readonly-runner\nconst m = require("mysql2");\nm.createConnection({ host: process.env.DB_HOST });\n'
+  # shellcheck disable=SC2059  # 픽스처 본문을 printf 서식으로 쓴다
+  for f in ro/ro.js d/dirty.js nm/sub/ro.js p/ro.js; do printf "$runner" > "$G/$f"; done
+  ln -s ../ro/ro.js "$G/l/link.js"
+  git -C "$G" init -q && git -C "$G" add ro d l nm p \
+    && git -C "$G" -c user.email=t@t -c user.name=t commit -qm fixture
+  # shellcheck disable=SC2059
+  printf "$runner" > "$G/u/untracked.js"
+  printf '// changed\n' >> "$G/d/dirty.js"
+  mkdir -p "$G/nm/node_modules/mysql2"            # 러너~루트 사이의 의존성 가림
+  : > "$G/p/pymysql.py"                            # 러너 옆 미추적 모듈 (python 가림)
+  mkdir -p "$G/q"   # 따옴표 경로·글롭 경로 우회 시도용 — 미추적 DB 코드가 실제로 실행될 파일
+  # shellcheck disable=SC2059
+  printf "$runner" > "$G/q/ro.js evil.js"; printf "$runner" > "$G/q/r*.js"
+  cp "$G/ro/ro.js" "$G/q/ro.js"; git -C "$G" add q/ro.js && git -C "$G" -c user.email=t@t -c user.name=t commit -qm q
+  gq() { run_guard "$G" "$1"; }
+  gq "node ro/ro.js --db x \\\"SELECT * FROM t WHERE a > 1 AND b = 'x;y'\\\""
+  check "러너: HEAD 동일 + SELECT (따옴표 안 > ;) → 통과" 0 "" "$rc" "$out"
+  gq "python3 ro/ro.js \\\"SELECT 1\\\"";                     check "러너: python 런타임 → 통과" 0 "" "$rc" "$out"
+  gq "node $G/ro/ro.js \\\"SELECT 1\\\"";                     check "러너: 절대경로 → ask" 0 '"ask"' "$rc" "$out"
+  gq "node u/untracked.js \\\"SELECT 1\\\"";                  check "러너: git 미추적 → ask" 0 '"ask"' "$rc" "$out"
+  gq "node d/dirty.js \\\"SELECT 1\\\"";                      check "러너: 커밋 후 수정됨 → ask" 0 '"ask"' "$rc" "$out"
+  gq "node l/link.js \\\"SELECT 1\\\"";                       check "러너: 심링크 → ask" 0 '"ask"' "$rc" "$out"
+  gq "node nm/sub/ro.js \\\"SELECT 1\\\"";                    check "러너: 상위 폴더 node_modules 가림 → ask" 0 '"ask"' "$rc" "$out"
+  gq "python3 p/ro.js \\\"SELECT 1\\\"";                      check "러너: 옆에 미추적 모듈 → ask" 0 '"ask"' "$rc" "$out"
+  gq "node \\\"q/ro.js evil.js\\\" \\\"SELECT 1\\\"";         check "러너: 따옴표 안 공백 경로 → ask" 0 '"ask"' "$rc" "$out"
+  gq "node \\\"q/r*.js\\\" \\\"SELECT 1\\\"";                 check "러너: 글롭 경로 → ask" 0 '"ask"' "$rc" "$out"
+  gq "node ro/../ro/ro.js \\\"SELECT 1\\\"";                  check "러너: .. 경로 → ask" 0 '"ask"' "$rc" "$out"
+  gq "node ro/ro.js \\\"DELETE FROM t\\\"";                   check "러너: 쓰기 SQL 인자 → deny" 2 "" "$rc" "$out"
+  gq "node ro/ro.js \\\"SELECT 1\\\" && rm -rf x";            check "러너: 체이닝 → ask" 0 '"ask"' "$rc" "$out"
+  gq "node ro/ro.js \\\"SELECT 1\\\" > out.txt";              check "러너: 리다이렉트 → ask" 0 '"ask"' "$rc" "$out"
+  gq "node ro/ro.js \\\"SELECT \$(id)\\\"";                   check "러너: 큰따옴표 안 명령 치환 → ask" 0 '"ask"' "$rc" "$out"
+  gq "node ro/ro.js \\\"x'\\\" ; evil ; \\\"'y\\\"";          check "러너: 따옴표 교차로 숨긴 구분자 → ask" 0 '"ask"' "$rc" "$out"
+  gq "node -r ./evil.js ro/ro.js \\\"SELECT 1\\\"";           check "러너: 런타임 플래그 → ask" 0 '"ask"' "$rc" "$out"
+  gq "NODE_OPTIONS=--require=./e.js node ro/ro.js \\\"SELECT 1\\\""; check "러너: 환경변수 접두 → ask" 0 '"ask"' "$rc" "$out"
+  gq "node ro/ro.js \\\"SELECT 1"
+  check "러너: 닫히지 않은 따옴표 → ask" 0 '"ask"' "$rc" "$out"
+  # 저장소 설정이 곧 코드 실행이다 — 판정 중 git 이 fsmonitor 를 부르면 안 된다
+  git -C "$G" config core.fsmonitor "touch $TMP/FSMON_RAN"
+  rm -f "$TMP/FSMON_RAN"; gq "node ro/ro.js \\\"SELECT 1\\\""
+  if [ -e "$TMP/FSMON_RAN" ]; then bad "러너: 저장소 fsmonitor 미실행" "판정 중 fsmonitor 명령이 실행됨"; else ok "러너: 저장소 fsmonitor 미실행"; fi
+  git -C "$G" config --unset core.fsmonitor
+else echo "  skip 읽기 전용 러너 (git 미설치)"; fi
 
 echo "── statusline-command.sh ──"
 sl() { out=$(printf '%s' "$1" | sh "$ROOT/statusline-command.sh" 2>/dev/null); rc=$?; }

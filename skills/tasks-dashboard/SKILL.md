@@ -28,6 +28,7 @@ disable-model-invocation: true
 - 인자로 파일경로가 주어지면 그 파일만 사용
 - `tasks/*.md`
 - `docs/tasks-*.md`, `docs/tasks/*.md`
+- `docs/tasks/*/STATUS.md`, `tasks/*/STATUS.md` (3층 태스크 폴더 — 진행 체크리스트는 STATUS에 있다)
 - `TODO.md`, `TODOS.md`
 - 프로젝트 `CLAUDE.md`에 태스크 경로 힌트가 있으면 우선 사용
 

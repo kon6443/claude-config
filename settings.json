@@ -138,7 +138,7 @@
     ],
     "defaultMode": "default"
   },
-  "model": "claude-opus-5[1m]",
+  "model": "opus[1m]",
   "hooks": {
     "SessionStart": [
       {
@@ -210,26 +210,9 @@
     }
   },
   "language": "Korean",
-  "effortLevel": "xhigh",
-  "modelSettings": {
-    "claude-opus-5": {
-      "effortLevel": "xhigh"
-    }
-  },
-  "skipWorkflowUsageWarning": true,
-  "showTurnDuration": true,
   "sandbox": {
     "enabled": true,
     "allowUnsandboxedCommands": true,
-    "filesystem": {
-      "denyRead": [
-        "~/.aws",
-        "~/.gnupg",
-        "~/.netrc",
-        "~/.config/gcloud",
-        "~/.kube"
-      ]
-    },
     "network": {
       "allowedDomains": [
         "github.com",
@@ -244,6 +227,29 @@
         "*.claude.ai",
         "code.claude.com"
       ]
+    },
+    "filesystem": {
+      "denyRead": [
+        "~/.aws",
+        "~/.gnupg",
+        "~/.netrc",
+        "~/.config/gcloud",
+        "~/.kube"
+      ]
     }
-  }
+  },
+  "effortLevel": "xhigh",
+  "modelSettings": {
+    "claude-opus-5": {
+      "effortLevel": "xhigh"
+    },
+    "claude-fable-5-1": {
+      "effortLevel": "medium"
+    },
+    "claude-opus-5-5": {
+      "effortLevel": "medium"
+    }
+  },
+  "skipWorkflowUsageWarning": true,
+  "showTurnDuration": true
 }

@@ -165,7 +165,7 @@ sandbox 네트워크는 `allowedDomains` 밖의 호스트에 처음 접근할 �
 |---|---|---|---|
 | `/plan` | `[작업 이름]` | 작업 계획서 골격 | 허용 — 계획이 필요한 상황이면 알아서 |
 | `/bugfix` | `[버그 요약]` | 버그 리포트 골격 | 허용 |
-| `/review` | `[base-branch]` | 플로우 기반 QA 리뷰 (범위 선언 → 추적 → 격리 반증) | 차단 |
+| `/review` | `[base-branch]` | 플로우 기반 QA 리뷰 (범위 선언 → 추적 → 격리 반증 · 보안 점검) | 허용 — 리뷰가 필요한 상황이면 알아서 |
 | `/pr-desc` | `[base-branch]` | 커밋 diff 기반 PR 제목·설명 생성 | 차단 |
 | `/tasks-dashboard` | `[all\|recent\|sync\|<file>] [--include-git]` | 태스크 파일 진행 대시보드 | 차단 |
 | `/session-handoff` | `[주제]` | 다른 세션에 넘기는 인계 프롬프트 (사실/가설 분리 · 재조사 금지 목록 · 한계) | 허용 |
@@ -173,8 +173,8 @@ sandbox 네트워크는 `allowedDomains` 밖의 호스트에 처음 접근할 �
 
 > ⚠️ **스킬 이름 충돌**: 이름이 같으면 **personal(글로벌)이 project를 이긴다** (공식 문서: "Enterprise over personal, and personal over project"). 글로벌 스킬에 흔한 이름(`handoff`, `task-doc` 등)을 쓰면 프로젝트의 같은 이름 스킬이 영구히 가려진다. 글로벌 스킬은 구체적인 이름을 쓰고, 프로젝트 특화판은 `review-<접미>`처럼 다른 이름으로 만든다.
 
-`/plan`·`/bugfix`·`/session-handoff`·`/task-folder`는 산출물 골격이라 모델이 상황에 맞춰 불러오는 게 이득이다.
-`/review`·`/pr-desc`·`/tasks-dashboard`는 사용자가 의도적으로 돌리는 절차라 `disable-model-invocation: true`로 자동 호출을 막았다.
+`/plan`·`/bugfix`·`/session-handoff`·`/task-folder`·`/review`는 모델이 상황에 맞춰 불러오는 게 이득이다.
+`/pr-desc`·`/tasks-dashboard`는 사용자가 의도적으로 돌리는 절차라 `disable-model-invocation: true`로 자동 호출을 막았다.
 `/plan`·`/bugfix`는 예전에 `templates/`에 있던 것을 스킬로 옮긴 것이다 — 공식 문서가 "여러 단계 절차나 일부 상황에서만 쓰는 내용은 스킬로 옮기라"고 권한다.
 
 `~/.claude/skills/`는 외부 스킬(`~/.agents/skills/*`)과 공존해야 하므로 디렉토리 전체가 아니라 **스킬별 심링크**를 건다 (`scripts/setup.sh`가 처리).

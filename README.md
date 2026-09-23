@@ -87,7 +87,7 @@ claude-config/
 
 ### db-guard 판정표
 
-대상: `node|python[3.x]|bun|deno|tsx|ts-node|npx|uv run|poetry run|pipenv run|pnpm/yarn exec|dlx|npm exec`로 시작하는 세그먼트(`VAR=값` 접두 포함). 명령 문자열 + 참조된 `.js/.ts/.py` 파일 내용을 스캔한다.
+대상: `node|python[3.x]|bun|deno|tsx|ts-node|npx|uv run|poetry run|pipenv run|pnpm/yarn exec|dlx|npm exec`로 시작하는 세그먼트(`VAR=값` 접두 · `env`/`command` 등 래퍼 · 서브셸 포함). 명령 문자열 + 참조된 `.js/.ts/.py` 파일 내용을 스캔한다.
 
 | 쓰기 SQL 시그니처 | DB 접속 시그니처 | 판정 |
 |---|---|---|

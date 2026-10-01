@@ -135,6 +135,13 @@ check "TMPDIR·cwd 쓰기 불가 → 파싱 유지" 0 "🧠 Fable" "$rc" "$out"
 if grep -q '<<' "$ROOT/statusline-command.sh"; then
   bad "statusline 에 here-document 없음" "임시파일이 필요해 제약 환경에서 실패한다"
 else ok "statusline 에 here-document 없음"; fi
+# 세션 이름 = SendMessage 주소. ~/.claude/sessions/<pid>.json 에서 session_id 로 찾는다
+SH="$TMP/slhome"; mkdir -p "$SH/.claude/sessions"
+printf '{"pid":1,"sessionId":"sid-1","name":"proj-3f"}' > "$SH/.claude/sessions/1.json"
+out=$(printf '{"session_id":"sid-1","cwd":"/tmp"}' | HOME="$SH" sh "$ROOT/statusline-command.sh" 2>/dev/null); rc=$?
+check "세션 이름 → 맨 앞 ✉ 세그먼트" 0 "✉ proj-3f · 📂" "$rc" "$out"
+out=$(printf '{"session_id":"sid-x","cwd":"/tmp"}' | HOME="$SH" sh "$ROOT/statusline-command.sh" 2>/dev/null); rc=$?
+case "$out" in *"✉"*) bad "세션 파일 없음 → ✉ 생략" "$out" ;; *) check "세션 파일 없음 → ✉ 생략" 0 "📂" "$rc" "$out" ;; esac
 # jq @sh 인용 없이 eval 하면 모델명/경로의 셸 메타문자가 실행된다
 rm -f "$TMP/PWNED"
 # shellcheck disable=SC2016  # 페이로드 안의 $( ) 는 확장되면 안 되는 테스트 입력이다

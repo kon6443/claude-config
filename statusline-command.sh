@@ -1,7 +1,7 @@
 #!/bin/sh
 # Claude Code status line — 미니멀 이모지 스타일
 #
-# 표시: 📂 dir · ⎇ branch · 🧠 model · 📈 ctx 사용% · ⚡ 5h 사용% · ⏱ 리셋까지 · 📊 +a/-r
+# 표시: ✉ 세션이름 · 📂 dir · ⎇ branch · 🧠 model · 📈 ctx 사용% · ⚡ 5h 사용% · ⏱ 리셋까지 · 📊 +a/-r
 # 설계:
 #  - jq 1회 호출로 모든 필드 추출 후 @sh 로 안전 인용 → eval (공백·따옴표 포함 값도 안전)
 #    heredoc/임시파일을 쓰지 않는다: 샌드박스나 읽기전용 TMPDIR 에서 파싱이 통째로 실패했다.
@@ -10,11 +10,12 @@
 #  - 어떤 필드가 비어도, jq 가 없어도 반드시 최소 1개 세그먼트를 출력한다
 input=$(cat 2>/dev/null || true)
 
-cwd=""; model=""; ctx_used=""; rate_used=""; resets_at=""; added=""; removed=""
+cwd=""; session_id=""; model=""; ctx_used=""; rate_used=""; resets_at=""; added=""; removed=""
 if command -v jq >/dev/null 2>&1 && [ -n "$input" ]; then
   eval "$(printf '%s' "$input" | jq -r '
     def num: if type == "number" then (floor | tostring) else "" end;
     @sh "cwd=\(.workspace.current_dir // .cwd // "")
+         session_id=\(.session_id // "")
          model=\(.model.display_name // "")
          ctx_used=\((.context_window.used_percentage
                      // (if .context_window.remaining_percentage != null
@@ -26,6 +27,14 @@ if command -v jq >/dev/null 2>&1 && [ -n "$input" ]; then
 fi
 [ -z "$cwd" ] && cwd="$PWD"
 dir=$(basename "$cwd")
+
+# 세션 이름 (SendMessage 주소) — ~/.claude/sessions/<pid>.json 의 name 을 sessionId 로 찾는다.
+# /rename 하면 파일이 갱신되므로 매 렌더마다 조회한다. 못 찾으면 세그먼트 생략.
+session_name=""
+if [ -n "$session_id" ] && command -v jq >/dev/null 2>&1; then
+  sess_file=$(grep -lF "\"sessionId\":\"${session_id}\"" "$HOME"/.claude/sessions/*.json 2>/dev/null | head -n 1)
+  [ -n "$sess_file" ] && session_name=$(jq -r '.name // empty' "$sess_file" 2>/dev/null)
+fi
 
 # Git branch
 git_branch=""
@@ -46,7 +55,9 @@ case "$resets_at" in
     ;;
 esac
 
-parts="📂 ${dir}"
+parts=""
+[ -n "$session_name" ] && parts="✉ ${session_name} · "
+parts="${parts}📂 ${dir}"
 [ -n "$git_branch" ] && parts="${parts} · ⎇ ${git_branch}"
 [ -n "$model" ]      && parts="${parts} · 🧠 ${model}"
 

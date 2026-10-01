@@ -30,7 +30,7 @@ sh ~/dotfiles/claude-config/scripts/check.sh   # 10개 섹션 무결성 + 이식
 claude-config/
 ├── CLAUDE.md                 # 핵심 원칙 + DoD(SSOT) + Communication + 가드레일 (약 100줄)
 ├── settings.json             # permissions, hooks, sandbox, statusline, 플러그인, env, model
-├── statusline-command.sh     # 하단 상태바
+├── statusline-command.sh     # 하단 상태바 (맨 앞 ✉ = 세션 이름 = SendMessage 주소)
 ├── sessionstart.sh           # SessionStart(startup|resume) — 심링크 자동복구 + 활동 요약(systemMessage) + 로그 회전
 ├── audit-log.sh              # PreToolUse(Bash) — 명령 감사 로그 (기록 시점 마스킹, 600)
 ├── db-guard.sh               # PreToolUse(Bash) — 스크립트 런타임 경유 DB 접속·변경 게이트

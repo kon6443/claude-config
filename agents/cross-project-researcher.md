@@ -1,6 +1,6 @@
 ---
 name: cross-project-researcher
-description: 🌐 연관 프로젝트(프론트/백 등) 코드 분석. 현재 프로젝트 작업 시 연관 프로젝트의 코드를 조사하여 스펙 불일치 사전 방지.
+description: 🌐 연관 프로젝트(프론트/백 등) 코드 분석. 현재 프로젝트 작업 시 연관 프로젝트의 코드를 조사하여 스펙 불일치 사전 방지. 프로젝트에 전용 연동 조사 에이전트가 있으면 그쪽을 우선하고, 없을 때 쓰는 범용 기본값이다.
 model: sonnet
 tools: Read, Glob, Grep
 disallowedTools: Edit, Write, NotebookEdit

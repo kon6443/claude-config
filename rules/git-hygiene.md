@@ -50,7 +50,7 @@
 - `git branch -D`
 - `--no-verify`, `--no-gpg-sign`
 
-(권한 시스템 deny 정책으로도 차단되어 있으나, 의도적으로 우회 시도하지 않는다.)
+(`--no-verify`·`--no-gpg-sign`을 뺀 나머지는 `permissions.deny`로도 막혀 있다. 막혀 있지 않은 것도, 막힌 것을 돌아가는 방법도 쓰지 않는다.)
 
 ## 8. Pre-commit Hook 실패
 

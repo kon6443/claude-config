@@ -1,7 +1,7 @@
 # AI Coding Agent Guidelines
 
 모든 프로젝트에 적용되는 핵심 원칙·완료 정의·커뮤니케이션 규약.
-상황별 상세 규칙은 `~/.claude/rules/*.md`에 있고 **세션 시작 시 자동 로드된다** — 각 파일 헤더가 적용 상황을 밝힌다.
+상황별 상세 규칙은 `~/.claude/rules/*.md`에 있다. `paths:`가 없는 파일은 세션 시작 시, 있는 파일은 일치하는 파일을 읽거나 편집할 때 자동 로드된다 — 각 파일 헤더가 적용 상황을 밝힌다.
 산출물 골격은 스킬이다: `/plan`, `/bugfix`, `/session-handoff`, `/task-folder`. 필요하면 직접 호출하고, 상황이 맞으면 알아서 불러온다.
 
 > **프로젝트가 우선한다.** 여기 내용과 프로젝트의 `CLAUDE.md`·`.claude/rules/`가 충돌하면 프로젝트 쪽을 따른다.
@@ -18,7 +18,7 @@
 
 ---
 
-## Operating Principles (Non-Negotiable)
+## Operating Principles
 
 - **Correctness over cleverness**: 보수적·가독성 우선. 영리한 트릭보다 보수적인 정답.
 - **Smallest change that works**: blast radius 최소화. 의미 있는 위험·복잡도 감소가 아니면 인접 코드 리팩터링 금지.
@@ -86,6 +86,6 @@
 
 권한 규칙·훅·sandbox는 `~/.claude/settings.json`이 강제한다. 여기 원칙은 그 위에서의 행동 지침이다.
 
-- DB 변경 쿼리(INSERT/UPDATE/DELETE/DDL)는 AI가 직접 실행하지 않는다. `db-guard` 훅이 차단하며, 차단되면 사용자에게 실행을 요청한다.
+- DB 변경 쿼리(INSERT/UPDATE/DELETE/DDL)는 AI가 직접 실행하지 않고 사용자에게 실행을 요청한다. `db-guard` 훅은 스크립트 런타임(node·python 등) 경유 실행만 검사한다 — `mysql`·`psql` 같은 DB CLI는 권한 확인에만 걸린다.
 - 시크릿(키·토큰·개인키)은 프롬프트·코드·로그·응답 어디에도 넣지 않는다.
 - `~/.claude/**`, `~/dotfiles/**`는 Edit/Write 도구로 수정할 수 없고 sandbox가 셸 쓰기도 막는다. 변경이 필요하면 임시 디렉토리에 만들어 `diff -u`로 보여준 뒤 사용자가 적용한다.

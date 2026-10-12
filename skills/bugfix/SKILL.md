@@ -14,8 +14,6 @@ argument-hint: "[버그 요약]"
 
 ---
 
----
-
 ## 1. Repro Steps
 
 최소 안정 재현 절차. 환경·데이터·실행 명령 명시.
@@ -69,11 +67,7 @@ argument-hint: "[버그 요약]"
 ## 8. Lessons
 
 - 동일 패턴의 다른 위치에 같은 버그가 있는가:
-- `rules/` 또는 lessons 파일에 추가할 규칙:
-
----
-
-> Definition of Done: `~/.claude/CLAUDE.md`의 DoD 섹션 (SSOT) 참조.
+- `rules/` 또는 교훈 문서(`workflow.md` 4절)에 추가할 규칙:
 
 ---
 

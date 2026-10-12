@@ -145,7 +145,7 @@ claude-config/
 | sandbox (macOS Seatbelt / Linux bubblewrap) | 파일 읽기 차단(`~/.aws`, `~/.gnupg`, `~/.netrc`, `~/.config/gcloud`, `~/.kube`), 네트워크 허용 도메인 목록 | `sandbox.*` |
 | deny | 파괴적 git, `rm -rf` 변형, 시크릿 파일 cat/Read, `claude --dangerously-skip-permissions`, `gh repo delete`, `Edit/Write(~/.claude, ~/dotfiles)` | `permissions.deny` |
 | ask | `git push/commit/merge/rebase/stash/tag`, `docker`, `rm`, `gh pr merge/create`, `gh release/secret/variable` | `permissions.ask` |
-| allow | git 읽기, 패키지 매니저, 일반 유틸, `gh` **읽기 명령만** (`pr view/list/diff/checks`, `issue view/list`, `repo view`, `run list/view`, `api repos/*`) | `permissions.allow` |
+| allow | git 읽기, 패키지 매니저, 일반 유틸, `gh` **읽기 명령만** (`pr view/list/diff/checks`, `issue view/list`, `repo view`, `run list/view`). `gh api`는 `-X`·`-f`로 쓰기가 되므로 허용하지 않는다 | `permissions.allow` |
 
 `curl`, `claude`, `gh` 전체 허용은 제거했다 (데이터 외부 전송, 권한 우회, 원격 파괴 작업 경로). `~/.ssh`는 sandbox denyRead에 넣지 않았다 — git over ssh가 sandbox 안에서 깨진다. 대신 Read/cat deny 규칙으로 보호하며, 더 강한 보호가 필요하면 ssh-agent 사용 후 denyRead에 추가한다.
 

@@ -16,10 +16,6 @@ argument-hint: "[작업 이름]"
 
 ---
 
-작업 시작 전 이 골격을 채워서 사용자에게 제시하거나 task 파일에 옮긴다.
-
----
-
 ## Goal & Acceptance Criteria
 
 - 무엇을 달성하는가:
@@ -66,11 +62,7 @@ argument-hint: "[작업 이름]"
 
 ## Lessons (해당 시)
 
-- 발견한 함정·새 규칙 → `memory/` 또는 lessons 파일에 옮길 항목:
-
----
-
-> Definition of Done: `~/.claude/CLAUDE.md`의 DoD 섹션 (SSOT) 참조.
+- 발견한 함정·새 규칙 → 교훈 문서(`workflow.md` 4절)에 옮길 항목:
 
 ---
 

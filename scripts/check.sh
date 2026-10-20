@@ -53,12 +53,13 @@ jq -e '.sandbox.enabled == true' settings.json >/dev/null 2>&1 && ok "sandbox �
 # 하나라도 빠지면 그 경로는 protected path 프롬프트(auto 모드에서는 분류기 판단)로만 막힌다.
 # shellcheck disable=SC2088  # ~ 는 펼치지 않는다 — settings.json 규칙 문자열과 글자 그대로 비교한다
 for p in '~/dotfiles/**' '~/.claude/settings*.json' '~/.claude/*.sh' '~/.claude/CLAUDE.md' '~/.claude/rules/**' \
-         '~/.claude/skills/**' '~/.claude/agents/**' '~/.claude/hooks/**' '~/.claude/plugins/**'; do
+         '~/.claude/skills/**' '~/.claude/agents/**' '~/.claude/hooks/**' '~/.claude/plugins/**' \
+         '~/.claude/shell-snapshots/**' '~/.claude/session-env/**'; do
   jq -e --arg r "Edit($p)" '.permissions.deny | index($r)' settings.json >/dev/null 2>&1 \
     && ok "deny Edit($p)" || bad "deny 에 Edit($p) 없음 — 설정 변조 경로"
 done
 # Write/NotebookEdit/MultiEdit 경로 규칙은 Claude Code 가 검사하지 않는다 (공식 permissions 문서). 막힌 줄 착각하게 만든다
-h=$(jq -r '[.permissions.deny[], .permissions.ask[], .permissions.allow[]] | map(select(test("^(Write|NotebookEdit|MultiEdit)\\("))) | join(" ")' settings.json 2>/dev/null)
+h=$(jq -r '[.permissions.deny[], .permissions.ask[], .permissions.allow[]] | map(select(test("^(Write|NotebookEdit|MultiEdit)\\("))) | join(" ")' settings.json 2>/dev/null) || h="(jq 실패 — 검사 불가)"
 [ -z "$h" ] && ok "무효한 Write 경로 규칙 없음" || bad "검사되지 않는 경로 규칙: $h → Edit(...) 로 바꾼다"
 
 echo "═══ 5. 지시문 정합성 ═══"

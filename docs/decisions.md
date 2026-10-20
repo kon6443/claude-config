@@ -13,7 +13,7 @@
 | 실제 보안 경계 | 없음 (권한 규칙은 우회 가능) | OS 레벨 sandbox |
 | 회귀 테스트 | 0건 | 82건 (CI 게이트) |
 | 검증 환경 | macOS만 | macOS + Ubuntu |
-| auto memory 저장 | 막힘 (`Edit(~/.claude/**)`) — 교훈 유실 | 허용. 설정·훅·지시 경로 14개만 deny |
+| auto memory 저장 | 막힘 (`Edit(~/.claude/**)`) — 교훈 유실 | 허용. 설정·지시·실행·감사 경로만 deny (`check.sh` 4절이 핵심 경로 누락을 잡음) |
 
 ---
 
@@ -23,6 +23,7 @@ google-research/harness2 를 전수 조사한 뒤 **일하는 방식(INV)** 에 
 
 | 변경 | 왜 | 기대효과 |
 |---|---|---|
+| deny 에 실행·정책·감사 경로 19개 추가 — `shell-snapshots/`·`session-env/`·`local/`·`chrome/`·`ide/`·`daemon/`·`daemon.json`·`launch.json`·`cowork_plugins/`·`mcp-skill-archives/`·`scheduled_tasks.json`·`routines/`·`loop.md`·`remote-settings*.json`·`policy-limits*`·`audit.log*`·`backups/`·`projects/*/*.jsonl`·`~/.claude.json`. 모델이 정상적으로 쓰는 `memory/`·`plans/`·`jobs/`(백그라운드 scratch)·`todos/`·`logs/` 는 제외. README 에 bypassPermissions 한계·memory 인젝션 표면 명시 | 아래 "14개로 좁힘" 직후 교차 리뷰(본 세션 + 별도 Opus 5.5 리뷰어)에서, 통째 deny 를 풀면서 **이미 있던** 실행 표면(Bash 전에 불러오는 셸 상태, 예약 실행, 정책 사본)과 감사 로그·대화 기록이 protected path 확인에만 기대게 됐다는 지적이 나왔다. protected path 는 bypassPermissions 에서 꺼진다. 하네스 sandbox 가 셸 쓰기를 막는 목록과 `~/.claude` 실물(`ls -A`)을 대조해 실행·정책·감사 표면을 골랐다(최종 리뷰에서 `chrome/`·`backups/` 등 추가). `~/.claude.json` 은 처음부터 범위 밖이던 빈틈을 같이 메웠다 | 실행·정책·감사 표면이 모든 모드에서 deny 로 막힌다. **위험(낮음)**: Claude Code 자신의 내부 쓰기는 Edit 규칙을 타지 않아 영향 없음. 후속: `Read(~/.claude/.credentials.json)` 은 `Read(**/credentials*)` 에 안 걸려 별도 검토 |
 | `model` 을 `opus[1m]` → `opus` | 사용자 기본값 요구가 "항상 최신 Opus" 다. `opus` 별칭이 최신 Opus(현재 5.5)로 풀린다. Opus 4.7 이후는 1M 컨텍스트가 기본이라 `[1m]` 은 효과가 없는 접미사였다(공식 model-config 문서) | 새 Opus 가 나오면 설정 변경 없이 따라간다. effort 는 모델별 `modelSettings` 를 따른다 — Opus 5.5 는 `medium` 저장값이 있고, **새 Opus 는 그 모델의 기본 effort 로 시작**하므로 바뀌면 `/effort medium` 한 번으로 저장한다. **위험(낮음)**: 새 Opus 로 바뀌는 시점에 동작·비용이 예고 없이 달라진다 |
 | `Edit(~/.claude/**)` deny 를 설정·훅·지시 경로 14개 deny 로 좁힘 — auto memory 쓰기 허용. 무효한 `Write(~/.claude/**)`·`Write(~/dotfiles/**)` 제거. `check.sh` 4절이 핵심 deny 누락과 `Write(...)` 경로 규칙을 잡는다 | 통째 deny 가 Claude Code 기본 기능인 auto memory 쓰기까지 막아 `workflow.md` §4 의 교훈이 어디에도 저장되지 않았다(세션에서 저장 시도가 거부되는 것으로 확인). 10-12 에 기록 위치를 auto memory 로 정할 때 놓쳤다. deny 는 allow·`!` 로 예외를 못 만들어(공식 permissions 문서) 경로를 골라 막는 것 외에 방법이 없다. `autoMemoryDirectory` 는 user 설정에 두면 모든 프로젝트가 한 폴더를 공유해 프로젝트 기억이 섞이므로 쓰지 않았다. `Write(...)` 경로 규칙은 Claude Code 가 검사하지 않아 막힌 줄 착각하게 했다 | 교정·교훈이 auto memory 에 저장된다. **위험(중간)**: 목록 밖의 새 민감 경로는 protected path 프롬프트로만 막힌다(auto 모드는 분류기). 핵심 경로 누락은 CI 가 잡는다. 확인: 새 세션에서 memory 저장이 되는지, `~/.claude/settings.json` 수정이 거부되는지. 롤백: 이 커밋 revert |
 | README `## 운영 팁` 에 "설정을 바꾸기 전 원칙" 표 추가 — 상시 텍스트 최후순위 · 늘리면 줄인다 · 근거 없이 바꾸지 않는다(관찰 또는 출처가 명확한 외부 근거) · 한 커밋 한 행동 변경. 보안·장애 수정은 예외 | 10-12 감사의 기준 중 상시 텍스트 최소화·근거 요구는 실제로 따랐지만 문서에 없었다. "한 커밋 한 행동 변경"은 10-12 감사(`00a65f3`, 9개 파일 묶음)와 달리 **이번부터** 적용한다. 원칙이 운영자 기억에만 있으면 감사마다 기준이 달라진다 | 상시 규칙의 단조 증가를 막고, 감사 판단이 일관된다. 행동 변화는 없다 (모델에게 로드되지 않음). **위험(없음)** |

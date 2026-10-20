@@ -31,8 +31,10 @@
 
 ## 4. Self-Improvement Loop
 
-- 사용자 교정 또는 실수 발견 후:
-  - 교훈 문서에 항목 추가 — failure mode, detection signal, prevention rule.
+- 사용자 교정 또는 실수 발견 후 교훈 문서에 항목 추가 — failure mode, detection signal, prevention rule, **근거**(어느 교정·실행에서 확인했나. auto memory에서는 `Why:`).
+  - **사용자 교정(거절·되돌림·재지시 포함)은 아래 기준과 무관하게 항상 기록한다.**
+  - 스스로 발견한 실수는 원인을 재현·격리로 확인했거나 같은 실수가 두 번째일 때 확정으로 기록한다. 그 밖에는 확인된 범위로 좁혀 `(미확정)`을 붙여 기록한다(auto memory에서는 `description` 맨 앞) — 버리지 않는다.
+  - detection signal은 상황의 **유형**으로 쓴다. "꼼꼼히"는 행동을 바꾸지 못하고, 이번 작업의 값은 다시 맞지 않는다.
   - 교훈 문서 = 프로젝트 `CLAUDE.md`(또는 `.claude/rules/`)가 지정한 파일. 지정이 없으면 레포에 파일을 만들지 않고 auto memory에 feedback으로 기록한다.
 - 대규모 리팩터링 전에 교훈 문서가 있으면 검토.
 
@@ -64,4 +66,3 @@
 3. **Track Progress** — 진행 중 1개 유지, 완료 즉시 마킹.
 4. **Checkpoint Notes** — 발견·결정·제약을 그때그때 기록.
 5. **Document Results** — 짧은 "Results" 섹션: 무엇이 어디서 어떻게 검증됐는가.
-6. **Capture Lessons** — 교정·포스트모템 후 교훈 문서 갱신 (위 4절).

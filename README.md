@@ -204,7 +204,7 @@ Orca는 설치 시 `~/.claude/settings.json`(이 저장소 파일의 심링크)�
 | 키 | 값 | 설명 |
 |---|---|---|
 | `model` | `opus` | 항상 최신 Opus. 별칭이라 새 Opus 가 나오면 설정 변경 없이 따라간다. Opus 4.7 이후는 1M 컨텍스트가 기본이라 `[1m]` 접미는 붙이지 않는다 |
-| `modelSettings.<모델 ID>.effortLevel` | `claude-opus-5-5`: `medium` | effort 는 **모델별로** 저장된다. `/effort` 를 실행하면 현재 모델 항목에 저장된다 |
+| `modelSettings.<모델 ID>.effortLevel` | `claude-opus-5-5`: `medium` (그 밖에 `claude-opus-5`: `xhigh`, `claude-fable-5-1`: `medium`) | effort 는 **모델별로** 저장된다. `/effort` 를 실행하면 현재 모델 항목에 저장된다 |
 | `effortLevel` (최상위) | `xhigh` | user 설정에서는 Opus 5 이하에만 적용된다. Opus 5.5 이후는 무시하고 `modelSettings` 를 따른다 |
 
 새 Opus 로 바뀌면 그 모델의 기본 effort 로 시작한다. medium 을 유지하려면 새 모델에서 `/effort medium` 을 한 번 실행한다.

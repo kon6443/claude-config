@@ -143,9 +143,13 @@ claude-config/
 | 계층 | 담당 | 설정 |
 |---|---|---|
 | sandbox (macOS Seatbelt / Linux bubblewrap) | 파일 읽기 차단(`~/.aws`, `~/.gnupg`, `~/.netrc`, `~/.config/gcloud`, `~/.kube`), 네트워크 허용 도메인 목록 | `sandbox.*` |
-| deny | 파괴적 git, `rm -rf` 변형, 시크릿 파일 cat/Read, `claude --dangerously-skip-permissions`, `gh repo delete`, `Edit/Write(~/.claude, ~/dotfiles)` | `permissions.deny` |
+| deny | 파괴적 git, `rm -rf` 변형, 시크릿 파일 cat/Read, `claude --dangerously-skip-permissions`, `gh repo delete`, `Edit(~/dotfiles/**)`, `Edit(~/.claude/<설정·훅·지시 경로>)` (아래 참고) | `permissions.deny` |
 | ask | `git push/commit/merge/rebase/stash/tag`, `docker`, `rm`, `gh pr merge/create`, `gh release/secret/variable` | `permissions.ask` |
 | allow | git 읽기, 패키지 매니저, 일반 유틸, `gh` **읽기 명령만** (`pr view/list/diff/checks`, `issue view/list`, `repo view`, `run list/view`). `gh api`는 `-X`·`-f`로 쓰기가 되므로 허용하지 않는다 | `permissions.allow` |
+
+**`~/.claude` 는 통째로 막지 않는다.** 통째로 막으면 Claude Code 기본 기능인 auto memory(`~/.claude/projects/<프로젝트>/memory/`) 쓰기까지 막혀 교훈이 저장되지 않는다. deny 는 allow 로 예외를 만들 수 없고 `!` 예외도 `~/` 규칙에는 닿지 않으므로(공식 permissions 문서), 실행·권한·지시에 영향을 주는 경로만 골라 막는다 — `settings*.json`, `*.sh`, `CLAUDE.md`, `rules/`, `skills/`, `agents/`, `commands/`, `hooks/`, `plugins/`, `output-styles/`, `workflows/`, `dev-mods/`, `keybindings.json`, `.credentials.json`.
+목록 밖의 `~/.claude` 경로도 Claude Code 의 protected path 라서 쓰기마다 확인을 받는다(auto 모드는 분류기 판단). memory 폴더의 Markdown 만 그 보호에서 빠진다. 심링크로 연결된 파일은 `Edit(~/dotfiles/**)` 가 실제 경로에서 한 번 더 막는다(deny 는 요청 경로·실제 경로 중 하나만 맞아도 적용). 핵심 경로가 deny 에서 빠지면 `scripts/check.sh` 4절이 실패한다.
+`Write(...)` 경로 규칙은 쓰지 않는다 — Claude Code 는 파일 쓰기를 `Edit(...)` 규칙으로만 검사하고 `Write(...)` 는 무시한다.
 
 `curl`, `claude`, `gh` 전체 허용은 제거했다 (데이터 외부 전송, 권한 우회, 원격 파괴 작업 경로). `~/.ssh`는 sandbox denyRead에 넣지 않았다 — git over ssh가 sandbox 안에서 깨진다. 대신 Read/cat deny 규칙으로 보호하며, 더 강한 보호가 필요하면 ssh-agent 사용 후 denyRead에 추가한다.
 

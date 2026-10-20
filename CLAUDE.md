@@ -88,4 +88,4 @@
 
 - DB 변경 쿼리(INSERT/UPDATE/DELETE/DDL)는 AI가 직접 실행하지 않고 사용자에게 실행을 요청한다. `db-guard` 훅은 스크립트 런타임(node·python 등) 경유 실행만 검사한다 — `mysql`·`psql` 같은 DB CLI는 권한 확인에만 걸린다.
 - 시크릿(키·토큰·개인키)은 프롬프트·코드·로그·응답 어디에도 넣지 않는다.
-- `~/.claude/**`, `~/dotfiles/**`는 Edit/Write 도구로 수정할 수 없고 sandbox가 셸 쓰기도 막는다. 변경이 필요하면 임시 디렉토리에 만들어 `diff -u`로 보여준 뒤 사용자가 적용한다.
+- `~/dotfiles/**`와 `~/.claude`의 설정·훅·지시 경로(settings·`*.sh`·CLAUDE.md·rules·skills·agents 등)는 Edit/Write 도구로 수정할 수 없고 sandbox가 셸 쓰기도 막는다. 변경이 필요하면 임시 디렉토리에 만들어 `diff -u`로 보여준 뒤 사용자가 적용한다. auto memory(`~/.claude/projects/*/memory/`)는 예외로 쓸 수 있다.

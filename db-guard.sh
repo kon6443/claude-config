@@ -32,12 +32,14 @@ cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null || true)
 # 세그먼트 시작(줄머리/&&/;/|/&)에서 런타임이 실행어로 등장하는가
 # `VAR=값 node …`, `env node …`, `command node …` 처럼 접두·래퍼가 붙어도 런타임으로 본다
 # — 없으면 접두 하나로 가드 전체를 건너뛴다. 서브셸 `(node …)` 도 세그먼트 시작으로 본다.
+# `./node_modules/.bin/tsx`, `/usr/bin/python3` 처럼 경로를 붙인 실행어도 런타임으로 본다 (RUNPATH).
 RUNTIMES='node|nodejs|python[0-9.]*|bun|deno|tsx|ts-node|npx|uv run|poetry run|pipenv run|(pnpm|yarn) (exec|dlx)|npm exec'
+RUNPATH='([~./A-Za-z0-9_-]+/)?'
 ENV_ASSIGN="[A-Za-z_][A-Za-z0-9_]*=(\"[^\"]*\"|'[^']*'|[^[:space:]\"'])*"
 WRAPPER='(env|command|exec|nohup|nice|time|sudo)([[:space:]]+-[^[:space:]]+)*'
 PREFIX="(($ENV_ASSIGN|$WRAPPER)[[:space:]]+)*"
 if ! printf '%s' "$cmd" \
-  | grep -qE "(^|&&|;|\||&|\(|\`)[[:space:]]*$PREFIX($RUNTIMES)([[:space:]]|\$|;|&|\))"; then
+  | grep -qE "(^|&&|;|\||&|\(|\`)[[:space:]]*$PREFIX$RUNPATH($RUNTIMES)([[:space:]]|\$|;|&|\))"; then
   exit 0
 fi
 
@@ -86,7 +88,7 @@ flat=$(printf '%s' "$corpus" | tr '\n\r\t' '   ')
 # ── (2) 시그니처 정의 ─────────────────────────────────────────────
 WRITE_SQL='INSERT[[:space:]]+INTO|UPDATE[[:space:]]+[^;]{1,80}[[:space:]]SET[[:space:]]|DELETE[[:space:]]+FROM|REPLACE[[:space:]]+INTO|TRUNCATE[[:space:]]+(TABLE[[:space:]]+)?[A-Za-z0-9_`]|DROP[[:space:]]+(TABLE|DATABASE|INDEX|VIEW)|ALTER[[:space:]]+TABLE|CREATE[[:space:]]+(TABLE|DATABASE|INDEX|VIEW)|GRANT[[:space:]]+[A-Z]+[[:space:]]+ON|MERGE[[:space:]]+INTO'
 
-DB_CONN='require\([^)]*(mysql|typeorm|sequelize|prisma|ioredis|mongodb|mongoose|knex|better-sqlite3|oracledb|mssql|tedious|[^A-Za-z]pg[^A-Za-z]|[^A-Za-z]redis[^A-Za-z])|import[[:space:]]+[^;]*(mysql|typeorm|sequelize|prisma|mongoose|knex|ioredis|drizzle|mongodb)|(import|from)[[:space:]]+(pymysql|psycopg2?|asyncpg|sqlalchemy|MySQLdb|pymssql|pymongo|redis|aiomysql|motor)|createConnection|createPool|createDataSource|new[[:space:]]+DataSource|PrismaClient|DATABASE_URL|DB_HOST|DB_PASSWORD|DB_USERNAME|DB_DATABASE|DB_PORT|process\.env\.DB_|getenv\([^)]*DB_'
+DB_CONN='require\([^)]*(mysql|typeorm|sequelize|prisma|ioredis|mongodb|mongoose|knex|better-sqlite3|oracledb|mssql|tedious|[^A-Za-z]pg[^A-Za-z]|[^A-Za-z]redis[^A-Za-z])|import[[:space:]]+[^;]*(mysql|typeorm|sequelize|prisma|mongoose|knex|ioredis|drizzle|mongodb|oracledb|mssql|tedious|better-sqlite3|[^A-Za-z]pg[^A-Za-z])|(import|from)[[:space:]]+(pymysql|psycopg2?|asyncpg|sqlalchemy|MySQLdb|pymssql|pymongo|redis|aiomysql|motor)|createConnection|createPool|getConnection|createDataSource|new[[:space:]]+DataSource|PrismaClient|DATABASE_URL|DB_HOST|DB_PASSWORD|DB_USERNAME|DB_DATABASE|DB_PORT|ORACLE_DB_|process\.env\.DB_|getenv\([^)]*DB_'
 
 # ── (2-b) 신뢰된 읽기 전용 러너 → 통과 ────────────────────────────
 # 프로젝트가 스스로 쓰기를 막는 조회 스크립트(READ ONLY 트랜잭션·키워드 허용목록 등)를 제공하면

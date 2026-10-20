@@ -87,7 +87,7 @@ claude-config/
 
 ### db-guard 판정표
 
-대상: `node|python[3.x]|bun|deno|tsx|ts-node|npx|uv run|poetry run|pipenv run|pnpm/yarn exec|dlx|npm exec`로 시작하는 세그먼트(`VAR=값` 접두 · `env`/`command` 등 래퍼 · 서브셸 포함). 명령 문자열 + 참조된 `.js/.ts/.py` 파일 내용을 스캔한다.
+대상: `node|python[3.x]|bun|deno|tsx|ts-node|npx|uv run|poetry run|pipenv run|pnpm/yarn exec|dlx|npm exec`로 시작하는 세그먼트(`VAR=값` 접두 · `env`/`command` 등 래퍼 · 서브셸 · `./node_modules/.bin/tsx`·`/usr/bin/python3` 같은 경로 접두 포함). 명령 문자열 + 참조된 `.js/.ts/.py` 파일 내용을 스캔한다. DB 접속 시그니처는 `require`·ESM `import` 양쪽의 드라이버 이름(oracledb·pg·mysql 등), `createConnection`·`createPool`·`getConnection`, `DB_*`·`ORACLE_DB_*` 환경변수 등이다.
 
 | 쓰기 SQL 시그니처 | DB 접속 시그니처 | 판정 |
 |---|---|---|
@@ -100,7 +100,7 @@ claude-config/
 
 **신뢰된 읽기 전용 러너**: 프로젝트가 쓰기를 스스로 막는 조회 스크립트(READ ONLY 트랜잭션, 키워드 허용목록 등)를 두고, 본문에 `claude-db-guard: readonly-runner` 마커를 넣으면 확인 없이 통과한다. 다음 조건을 모두 만족해야 한다.
 
-- `<런타임> <상대경로> [인자…]` 단독 호출이어야 한다. 환경변수 접두, 래퍼(`env` 등), 런타임 플래그, 따옴표 밖 셸 메타문자, 명령 치환이 없어야 한다. 경로는 `[A-Za-z0-9_./-]`만 쓸 수 있고 `..`는 안 된다.
+- `<런타임> <상대경로> [인자…]` 단독 호출이어야 한다. 런타임은 경로 없는 이름(`node`·`tsx`·`bun`·`python3` 등)이어야 한다 — `./node_modules/.bin/tsx` 처럼 경로를 붙이면 실행어 자체를 신뢰할 수 없어 ask 다. 환경변수 접두, 래퍼(`env` 등), 런타임 플래그, 따옴표 밖 셸 메타문자, 명령 치환이 없어야 한다. 경로는 `[A-Za-z0-9_./-]`만 쓸 수 있고 `..`는 안 된다.
 - 러너는 cwd가 속한 저장소 안(루트 직속 제외)의 실파일이어야 하고, 바이트가 HEAD의 blob과 같아야 한다. 에이전트가 러너를 고치면 커밋, 즉 사람의 확인을 거치기 전까지 신뢰하지 않는다.
 - 러너 폴더에 미추적·무시 파일이 없어야 하고, 러너와 저장소 루트 사이 폴더에 `node_modules`가 없어야 한다. 옆에 둔 가짜 모듈로 의존성을 가리는 것을 막는다.
 - 명령 문자열에 쓰기 SQL이 없어야 한다.

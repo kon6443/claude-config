@@ -212,13 +212,14 @@ paths:
 
 | 키 | 뜻 |
 |---|---|
-| `model` | 기본 모델. `[1m]` 접미는 100만 토큰 컨텍스트 |
-| `effortLevel`, `modelSettings` | 추론 강도. 모델별로 따로 저장 가능 |
+| `model` | 기본 모델. 별칭(`opus` 등)은 최신 버전으로 풀린다. `[1m]` 접미는 100만 토큰 컨텍스트 — Opus 4.7 이후는 기본이라 효과 없음 |
+| `effortLevel`, `modelSettings` | 추론 강도. `modelSettings` 에 모델별로 저장된다. user 설정의 최상위 `effortLevel` 은 Opus 5.5 이후 모델에 적용되지 않는다 |
 | `env` | 세션에 주입할 환경 변수 |
 | `statusLine` | 하단 상태바를 만드는 명령 |
 | `language` | 응답 언어 |
 | `outputStyle` | 역할·어조·형식을 바꾸는 저장된 지시 묶음 이름 |
 | `autoMemoryEnabled` | 자동 메모리 on/off (기본 on) |
+| `autoMemoryDirectory` | 자동 메모리 위치. user 설정에 두면 모든 프로젝트가 한 폴더를 공유한다 |
 | `cleanupPeriodDays` | 대화 기록 보관 일수 |
 | `attribution` | 커밋·PR에 붙는 서명 |
 | `enabledPlugins`, `extraKnownMarketplaces` | 플러그인 |

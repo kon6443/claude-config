@@ -13,6 +13,7 @@
 | 실제 보안 경계 | 없음 (권한 규칙은 우회 가능) | OS 레벨 sandbox |
 | 회귀 테스트 | 0건 | 82건 (CI 게이트) |
 | 검증 환경 | macOS만 | macOS + Ubuntu |
+| auto memory 저장 | 막힘 (`Edit(~/.claude/**)`) — 교훈 유실 | 허용. 설정·훅·지시 경로 14개만 deny |
 
 ---
 

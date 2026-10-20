@@ -89,9 +89,13 @@ flat=$(printf '%s' "$corpus" | tr '\n\r\t' '   ')
 WRITE_SQL='INSERT[[:space:]]+INTO|UPDATE[[:space:]]+[^;]{1,80}[[:space:]]SET[[:space:]]|DELETE[[:space:]]+FROM|REPLACE[[:space:]]+INTO|TRUNCATE[[:space:]]+(TABLE[[:space:]]+)?[A-Za-z0-9_`]|DROP[[:space:]]+(TABLE|DATABASE|INDEX|VIEW)|ALTER[[:space:]]+TABLE|CREATE[[:space:]]+(TABLE|DATABASE|INDEX|VIEW)|GRANT[[:space:]]+[A-Z]+[[:space:]]+ON|MERGE[[:space:]]+INTO'
 
 DB_CONN='require\([^)]*(mysql|typeorm|sequelize|prisma|ioredis|mongodb|mongoose|knex|better-sqlite3|oracledb|mssql|tedious|[^A-Za-z]pg[^A-Za-z]|[^A-Za-z]redis[^A-Za-z])|import[[:space:]]+[^;]*(mysql|typeorm|sequelize|prisma|mongoose|knex|ioredis|drizzle|mongodb)|(import|from)[[:space:]]+(pymysql|psycopg2?|asyncpg|sqlalchemy|MySQLdb|pymssql|pymongo|redis|aiomysql|motor)|createConnection|createPool|getConnection[[:space:]]*\(|createDataSource|new[[:space:]]+DataSource|PrismaClient|DATABASE_URL|DB_HOST|DB_PASSWORD|DB_USERNAME|DB_DATABASE|DB_PORT|ORACLE_DB_|process\.env\.DB_|getenv\([^)]*DB_'
-# ESM 드라이버는 모듈 지정자(따옴표 안 이름)로만 본다 — `import[^;]*` 는 세미콜론 없는 파일 끝까지 이어져
-# 주석의 `pg_dump` 같은 낱말까지 잡는다. `import x from "pg"`, `import("oracledb")`, `from "pg/lib"` 형태.
-DB_CONN="$DB_CONN|(from|import)[[:space:]]*\\(?[[:space:]]*[\"'](oracledb|mssql|tedious|better-sqlite3|pg)[\"'/]"
+# ESM 드라이버는 줄 단위로, 줄머리 import/export 문장의 모듈 지정자(따옴표 안 이름)로만 본다.
+# 개행을 지운 $flat 에 걸면 `import[^;]*` 가 세미콜론 없는 파일 끝까지 이어지고, `from "pg"` 만 보면
+# 주석 문장("data from "pg" to …")까지 잡아 SQL 생성 스크립트를 deny 로 만든다.
+# 잡는 형태: `import x from "pg"`, `export * from 'pg'`, 여러 줄 import 의 `} from "pg"`, `import "pg"`,
+#           `await import("oracledb")`(줄 중간 허용), 하위 경로 `"pg/lib/x"`.
+ESM_DRV='(oracledb|mssql|tedious|better-sqlite3|pg)'
+ESM_CONN="^[[:space:]]*((import|export)[[:space:]][^\"'#]*[[:space:]]from[[:space:]]*|import[[:space:]]*|\\}[[:space:]]*from[[:space:]]*)[\"']${ESM_DRV}[\"'/]|import[[:space:]]*\\([[:space:]]*[\"']${ESM_DRV}[\"'/]"
 
 # ── (2-b) 신뢰된 읽기 전용 러너 → 통과 ────────────────────────────
 # 프로젝트가 스스로 쓰기를 막는 조회 스크립트(READ ONLY 트랜잭션·키워드 허용목록 등)를 제공하면
@@ -174,6 +178,7 @@ emit_ask() {
 sql_hit=$(printf '%s' "$flat" | grep -ioE "$WRITE_SQL" 2>/dev/null | head -1 || true)
 conn_hit=0
 printf '%s' "$flat" | grep -iqE "$DB_CONN" 2>/dev/null && conn_hit=1
+printf '%s\n' "$corpus" | grep -qE "$ESM_CONN" 2>/dev/null && conn_hit=1
 
 # (3-a) 쓰기 SQL + DB 접속 → deny
 if [ -n "$sql_hit" ] && [ "$conn_hit" -eq 1 ]; then

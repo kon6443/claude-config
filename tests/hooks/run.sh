@@ -86,6 +86,10 @@ printf 'import os\n# use pg_dump later\nprint("CREATE TABLE x (a int)")\n' > "$W
 printf 'const n = require("net");\nn.getConnectionInfo();\n' > "$W/netinfo.js"
 run_guard "$W" "python3 gen.py";  check "SQL 생성만 + 주석의 pg_dump → ask (deny 아님)" 0 '"ask"' "$rc" "$out"
 run_guard "$W" "node netinfo.js"; check "getConnectionInfo (DB 무관) → 통과" 0 "" "$rc" "$out"
+printf '# migrate data from "pg" to mysql\nprint("INSERT INTO t VALUES (1)")\n' > "$W/mig.py"
+printf 'import {\n  Pool,\n} from "pg";\nconst q = "INSERT INTO t VALUES (1)";\n' > "$W/multi.ts"
+run_guard "$W" "python3 mig.py"; check "주석 문장의 from \\\"pg\\\" + SQL 생성 → ask (deny 아님)" 0 '"ask"' "$rc" "$out"
+run_guard "$W" "tsx multi.ts";   check "여러 줄 import 의 } from \\\"pg\\\" + INSERT → deny" 2 "" "$rc" "$out"
 
 # 신뢰된 읽기 전용 러너: 마커 + HEAD blob 동일 + 저장소 안 + 단독 호출일 때만 통과
 if command -v git >/dev/null 2>&1; then

@@ -87,7 +87,7 @@ claude-config/
 
 ### db-guard 판정표
 
-대상: `node|python[3.x]|bun|deno|tsx|ts-node|npx|uv run|poetry run|pipenv run|pnpm/yarn exec|dlx|npm exec`로 시작하는 세그먼트(`VAR=값` 접두 · `env`/`command` 등 래퍼 · 서브셸 포함). 명령 문자열 + 참조된 `.js/.ts/.py` 파일 내용을 스캔한다.
+대상: `node|python[3.x]|bun|deno|tsx|ts-node|npx|uv run|poetry run|pipenv run|pnpm/yarn exec|dlx|npm exec`로 시작하는 세그먼트(`VAR=값` 접두 · `env`/`command` 등 래퍼 · 서브셸 · `./node_modules/.bin/tsx`·`/usr/bin/python3` 같은 경로 접두 포함). 명령 문자열 + 참조된 `.js/.ts/.py` 파일 내용을 스캔한다. DB 접속 시그니처는 `require(…)`·`import … from` 의 드라이버 이름(oracledb·pg·mysql 등 — oracledb·pg·mssql·tedious·better-sqlite3 의 ESM 은 따옴표 안 모듈 이름만 본다), `createConnection`·`createPool`·`getConnection(`, `DB_*`·`ORACLE_DB_*` 환경변수 등이다. 경로 접두 실행어도 대상이라 `.venv/bin/python -m pytest` 처럼 스크립트 파일이 없는 실행은 "대상 확인 불가" ask 가 된다(경로 없는 `python3 -m pytest` 와 같은 판정).
 
 | 쓰기 SQL 시그니처 | DB 접속 시그니처 | 판정 |
 |---|---|---|
@@ -100,7 +100,7 @@ claude-config/
 
 **신뢰된 읽기 전용 러너**: 프로젝트가 쓰기를 스스로 막는 조회 스크립트(READ ONLY 트랜잭션, 키워드 허용목록 등)를 두고, 본문에 `claude-db-guard: readonly-runner` 마커를 넣으면 확인 없이 통과한다. 다음 조건을 모두 만족해야 한다.
 
-- `<런타임> <상대경로> [인자…]` 단독 호출이어야 한다. 환경변수 접두, 래퍼(`env` 등), 런타임 플래그, 따옴표 밖 셸 메타문자, 명령 치환이 없어야 한다. 경로는 `[A-Za-z0-9_./-]`만 쓸 수 있고 `..`는 안 된다.
+- `<런타임> <상대경로> [인자…]` 단독 호출이어야 한다. 런타임은 경로 없는 이름(`node`·`tsx`·`bun`·`python3` 등)이어야 한다 — `./node_modules/.bin/tsx` 처럼 경로를 붙이면 실행어 자체를 신뢰할 수 없어 ask 다. 환경변수 접두, 래퍼(`env` 등), 런타임 플래그, 따옴표 밖 셸 메타문자, 명령 치환이 없어야 한다. 경로는 `[A-Za-z0-9_./-]`만 쓸 수 있고 `..`는 안 된다.
 - 러너는 cwd가 속한 저장소 안(루트 직속 제외)의 실파일이어야 하고, 바이트가 HEAD의 blob과 같아야 한다. 에이전트가 러너를 고치면 커밋, 즉 사람의 확인을 거치기 전까지 신뢰하지 않는다.
 - 러너 폴더에 미추적·무시 파일이 없어야 하고, 러너와 저장소 루트 사이 폴더에 `node_modules`가 없어야 한다. 옆에 둔 가짜 모듈로 의존성을 가리는 것을 막는다.
 - 명령 문자열에 쓰기 SQL이 없어야 한다.
@@ -143,9 +143,20 @@ claude-config/
 | 계층 | 담당 | 설정 |
 |---|---|---|
 | sandbox (macOS Seatbelt / Linux bubblewrap) | 파일 읽기 차단(`~/.aws`, `~/.gnupg`, `~/.netrc`, `~/.config/gcloud`, `~/.kube`), 네트워크 허용 도메인 목록 | `sandbox.*` |
-| deny | 파괴적 git, `rm -rf` 변형, 시크릿 파일 cat/Read, `claude --dangerously-skip-permissions`, `gh repo delete`, `Edit/Write(~/.claude, ~/dotfiles)` | `permissions.deny` |
-| ask | `git push/commit/merge/rebase/stash/tag`, `docker`, `rm`, `gh pr merge/create`, `gh release/secret/variable` | `permissions.ask` |
+| deny | 파괴적 git, `rm -rf` 변형, 시크릿 파일 cat/Read, `claude --dangerously-skip-permissions`, `gh repo delete`, `Edit(~/dotfiles/**)`, `Edit(~/.claude/<설정·훅·지시 경로>)` (아래 참고) | `permissions.deny` |
+| ask | `git push/commit/merge/rebase/stash/tag`, docker 중 **원격·운영·레지스트리·대량 삭제·호스트 탈출만**(`stack`·`service`·`swarm`·`node`·`context`·`push`·`image push`·`* --push`·`manifest`·`buildx imagetools`·`login`·`secret`·`config`, `-H`·`--host`·`--context`·`-c`, `DOCKER_HOST=`·`DOCKER_CONTEXT=`·`export`/`env DOCKER_*`, `* prune`·`volume rm`·`compose down -v`·`rm/rmi $(…)`·`container/image rm $(…)`, `compose push`, `--privileged`·`-v /:`·`--volume /:`·`docker.sock`), `rm`, `gh pr merge/create`, `gh release/secret/variable` | `permissions.ask` |
 | allow | git 읽기, 패키지 매니저, 일반 유틸, `gh` **읽기 명령만** (`pr view/list/diff/checks`, `issue view/list`, `repo view`, `run list/view`). `gh api`는 `-X`·`-f`로 쓰기가 되므로 허용하지 않는다 | `permissions.allow` |
+
+**docker 는 로컬을 막지 않는다.** 로컬 컨테이너는 테스트용이라 글로벌에서 확인을 강제하지 않고, 원격 데몬·운영 클러스터·레지스트리에 닿거나, 대량 삭제하거나, 호스트 루트·도커 소켓에 닿는(`--privileged`·`-v /:`·`docker.sock`) 명령만 ask 에 둔다. Bash 규칙은 글자 매칭이라 변형을 다 잡지 못하고(예: `-v /etc:/x`, `--mount …source=/`, `--pid=host`, `--cap-add`, `buildx --output type=registry`, `… | xargs docker rm`), 반대로 컨테이너 인자에 `-H` 가 오면(`docker run curlimages/curl -H …`) 불필요한 ask 가 뜬다. 글로벌 ask 는 프로젝트 allow 보다 우선하므로(deny → ask → allow), `Bash(docker *)` 를 ask 에 두면 어떤 프로젝트도 로컬 docker 를 풀 수 없다. 로컬 docker 를 확인 없이 돌리려면 **프로젝트** `settings.json` allow 에 `Bash(docker *)` 를 둔다 — 글로벌 allow 에는 넣지 않는다.
+
+**`~/.claude` 는 통째로 막지 않는다.** 통째로 막으면 Claude Code 기본 기능인 auto memory(`~/.claude/projects/<프로젝트>/memory/`) 쓰기까지 막혀 교훈이 저장되지 않는다. deny 는 allow 로 예외를 만들 수 없고 `!` 예외도 `~/` 규칙에는 닿지 않으므로(공식 permissions 문서), 실행·권한·지시·감사에 영향을 주는 경로만 골라 막는다.
+- 설정·지시: `settings*.json`, `CLAUDE.md`, `rules/`, `skills/`, `agents/`, `commands/`, `output-styles/`, `keybindings.json`, `remote-settings*.json`, `policy-limits*`, `~/.claude.json`(MCP 서버·폴더 신뢰)
+- 실행: `*.sh`, `hooks/`, `plugins/`, `cowork_plugins/`, `mcp-skill-archives/`, `workflows/`, `dev-mods/`, `shell-snapshots/`·`session-env/`(Bash 실행 전에 불러오는 셸 상태), `local/`, `chrome/`(Chrome 이 직접 실행하는 native host 스크립트), `ide/`, `daemon/`·`daemon.json`, `launch.json`, `scheduled_tasks.json`, `routines/`, `loop.md`
+- 자격증명·감사·기록: `.credentials.json`, `audit.log*`, `backups/`(회전된 감사 로그·`.claude.json` 백업), `projects/*/*.jsonl`(대화 기록 — `--resume` 때 다시 읽힌다)
+- 막지 않는 것: `projects/*/memory/`(auto memory), `plans/`(plan 파일), `jobs/`(백그라운드 세션 scratch), `todos/`, `logs/` 처럼 모델이 정상적으로 쓰거나 실행에 쓰이지 않는 곳.
+
+목록 밖의 `~/.claude` 경로도 Claude Code 의 protected path 라서 쓰기마다 확인을 받는다(auto 모드는 분류기 판단). **단 `bypassPermissions` 모드는 이 확인을 건너뛴다** — 그 모드에서는 위 deny 목록만 남는다. memory 폴더의 Markdown 만 이 보호에서 빠진다. memory 의 `MEMORY.md` 는 매 세션 로드되므로, 인젝션이 남으면 다음 세션까지 이어지는 지시 표면이 된다 — 가끔 `/memory` 로 훑는다. 심링크로 연결된 파일은 `Edit(~/dotfiles/**)` 가 실제 경로에서 한 번 더 막는다(deny 는 요청 경로·실제 경로 중 하나만 맞아도 적용). 핵심 경로가 deny 에서 빠지면 `scripts/check.sh` 4절이 실패한다.
+`Write(...)` 경로 규칙은 쓰지 않는다 — Claude Code 는 파일 쓰기를 `Edit(...)` 규칙으로만 검사하고 `Write(...)` 는 무시한다.
 
 `curl`, `claude`, `gh` 전체 허용은 제거했다 (데이터 외부 전송, 권한 우회, 원격 파괴 작업 경로). `~/.ssh`는 sandbox denyRead에 넣지 않았다 — git over ssh가 sandbox 안에서 깨진다. 대신 Read/cat deny 규칙으로 보호하며, 더 강한 보호가 필요하면 ssh-agent 사용 후 denyRead에 추가한다.
 
@@ -190,6 +201,17 @@ Orca는 설치 시 `~/.claude/settings.json`(이 저장소 파일의 심링크)�
 - `jq`가 없는 기기에서는 필터가 그대로 통과시켜 커밋을 막지 않는다.
 - `git checkout`·`pull`·`merge`가 settings.json을 다시 꺼내면 로컬 Orca 훅이 사라진다 (smudge 필터 없음). Orca를 재시작하면 재주입된다.
 
+## 모델 · effort
+
+| 키 | 값 | 설명 |
+|---|---|---|
+| `model` | `opus` | 항상 최신 Opus. 별칭이라 새 Opus 가 나오면 설정 변경 없이 따라간다. Opus 4.7 이후는 1M 컨텍스트가 기본이라 `[1m]` 접미는 붙이지 않는다 |
+| `modelSettings.<모델 ID>.effortLevel` | `claude-opus-5-5`: `medium` (그 밖에 `claude-opus-5`: `xhigh`, `claude-fable-5-1`: `medium`) | effort 는 **모델별로** 저장된다. `/effort` 를 실행하면 현재 모델 항목에 저장된다 |
+| `effortLevel` (최상위) | `xhigh` | user 설정에서는 Opus 5 이하에만 적용된다. Opus 5.5 이후는 무시하고 `modelSettings` 를 따른다 |
+
+새 Opus 로 바뀌면 그 모델의 기본 effort 로 시작한다. medium 을 유지하려면 새 모델에서 `/effort medium` 을 한 번 실행한다.
+`CLAUDE_CODE_EFFORT_LEVEL` env 로 강제하지 않는 이유: `/effort`·`--effort` 보다 우선해 세션 중에 올릴 수 없게 된다.
+
 ## 환경 변수
 
 | 키 | 값 | 설명 |
@@ -209,7 +231,7 @@ Orca는 설치 시 `~/.claude/settings.json`(이 저장소 파일의 심링크)�
 
 | 원칙 | 내용 |
 |---|---|
-| 상시 텍스트가 가장 비싸다 | `CLAUDE.md`·조건 없는 `rules/`는 매 세션 실린다. 새 지시는 스킬(계기가 분명한 절차) → 스크립트(결정적 작업) → 훅(글로 쓴 규칙이 **반복해서** 무시될 때) → 상시 규칙 순으로 검토한다 |
+| 상시 텍스트가 가장 비싸다 | `CLAUDE.md`·조건 없는 `rules/`는 매 세션 실린다. 새 지시는 스킬(계기가 분명한 절차) → 스크립트(결정적 작업) → 훅(글로 쓴 규칙이 **반복해서** 무시될 때) → 상시 규칙 순으로 검토한다. 단 **무조건 막아야 하는 것**은 처음부터 훅·sandbox·deny 에 둔다 (위치 판단 전체는 `docs/claude-code-concepts.md` 12절) |
 | 늘리면 줄인다 | 상시 텍스트를 늘리면 중복·사문화된 문장을 같은 커밋에서 줄인다. 순증가가 불가피하면 `docs/decisions.md`에 이유를 남긴다 |
 | 근거 없이 바꾸지 않는다 | 실제로 관찰한 실패·교정, 또는 출처가 명확한 외부 근거(공식 문서·논문 등)가 있어야 바꾼다. 외부 근거만 있으면 `docs/decisions.md`에 그렇게 적고 관찰 방법을 남긴다. "바꾸지 않음"도 정당한 결론이다 |
 | 한 커밋에 한 가지 행동 변경 | 여러 지시를 함께 바꾸면 무엇이 효과를 냈고 무엇이 문제를 일으켰는지 구분할 수 없다. 되돌릴 때도 같이 묶여 빠진다 |

@@ -68,6 +68,28 @@ run_guard "$W" "X=\\\"a b\\\" node seed.js"; check "따옴표 값 환경변수 �
 run_guard "$W" "env node seed.js";          check "env 래퍼 → deny" 2 "" "$rc" "$out"
 run_guard "$W" "command node seed.js";      check "command 래퍼 → deny" 2 "" "$rc" "$out"
 run_guard "$W" "(node seed.js)";            check "서브셸 → deny" 2 "" "$rc" "$out"
+# 경로를 붙인 실행어로 가드를 건너뛰던 구멍
+run_guard "$W" "./node_modules/.bin/tsx seed.ts"; check "경로 접두 실행어(./node_modules/.bin/tsx) → deny" 2 "" "$rc" "$out"
+run_guard "$W" "/usr/bin/python3 seed.py";        check "절대경로 실행어(/usr/bin/python3) → deny" 2 "" "$rc" "$out"
+run_guard "$W" "cat ./node_modules/.bin/tsx";     check "경로가 인자일 뿐인 명령 → 통과" 0 "" "$rc" "$out"
+# ESM import·getConnection·ORACLE_DB_ 만 쓰는 접속 코드를 놓치던 구멍 (각 신호를 따로 검사)
+printf 'import oracledb from "oracledb";\nconsole.log(oracledb);\n' > "$W/esm.ts"
+printf 'const c = await pool.getConnection();\n' > "$W/getconn.ts"
+printf 'const u = process.env.ORACLE_DB_USER;\n' > "$W/oraenv.ts"
+run_guard "$W" "tsx esm.ts";     check "ESM import oracledb → ask" 0 '"ask"' "$rc" "$out"
+run_guard "$W" "tsx getconn.ts"; check "getConnection → ask" 0 '"ask"' "$rc" "$out"
+run_guard "$W" "tsx oraenv.ts";  check "ORACLE_DB_ 환경변수 → ask" 0 '"ask"' "$rc" "$out"
+printf 'const pg = await import("pg");\n' > "$W/dyn.ts"
+run_guard "$W" "tsx dyn.ts";     check "동적 import(\\\"pg\\\") → ask" 0 '"ask"' "$rc" "$out"
+# 접속 시그니처를 넓히다 생긴 오탐 — DB 에 붙지 않는 코드는 하드 차단·ask 로 바뀌면 안 된다
+printf 'import os\n# use pg_dump later\nprint("CREATE TABLE x (a int)")\n' > "$W/gen.py"
+printf 'const n = require("net");\nn.getConnectionInfo();\n' > "$W/netinfo.js"
+run_guard "$W" "python3 gen.py";  check "SQL 생성만 + 주석의 pg_dump → ask (deny 아님)" 0 '"ask"' "$rc" "$out"
+run_guard "$W" "node netinfo.js"; check "getConnectionInfo (DB 무관) → 통과" 0 "" "$rc" "$out"
+printf '# migrate data from "pg" to mysql\nprint("INSERT INTO t VALUES (1)")\n' > "$W/mig.py"
+printf 'import {\n  Pool,\n} from "pg";\nconst q = "INSERT INTO t VALUES (1)";\n' > "$W/multi.ts"
+run_guard "$W" "python3 mig.py"; check "주석 문장의 from \\\"pg\\\" + SQL 생성 → ask (deny 아님)" 0 '"ask"' "$rc" "$out"
+run_guard "$W" "tsx multi.ts";   check "여러 줄 import 의 } from \\\"pg\\\" + INSERT → deny" 2 "" "$rc" "$out"
 
 # 신뢰된 읽기 전용 러너: 마커 + HEAD blob 동일 + 저장소 안 + 단독 호출일 때만 통과
 if command -v git >/dev/null 2>&1; then
@@ -91,6 +113,8 @@ if command -v git >/dev/null 2>&1; then
   gq "node ro/ro.js --db x \\\"SELECT * FROM t WHERE a > 1 AND b = 'x;y'\\\""
   check "러너: HEAD 동일 + SELECT (따옴표 안 > ;) → 통과" 0 "" "$rc" "$out"
   gq "python3 ro/ro.js \\\"SELECT 1\\\"";                     check "러너: python 런타임 → 통과" 0 "" "$rc" "$out"
+  gq "tsx ro/ro.js \\\"SELECT 1\\\"";                         check "러너: tsx 런타임 → 통과" 0 "" "$rc" "$out"
+  gq "./node_modules/.bin/tsx ro/ro.js \\\"SELECT 1\\\"";     check "러너: 경로 접두 실행어 → ask (실행어 자체를 신뢰 못 함)" 0 '"ask"' "$rc" "$out"
   gq "node $G/ro/ro.js \\\"SELECT 1\\\"";                     check "러너: 절대경로 → ask" 0 '"ask"' "$rc" "$out"
   gq "node u/untracked.js \\\"SELECT 1\\\"";                  check "러너: git 미추적 → ask" 0 '"ask"' "$rc" "$out"
   gq "node d/dirty.js \\\"SELECT 1\\\"";                      check "러너: 커밋 후 수정됨 → ask" 0 '"ask"' "$rc" "$out"

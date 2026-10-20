@@ -55,7 +55,12 @@ case "$cd_target" in
   *) cd_target="$cwd/$cd_target" ;;
 esac
 
-files=$(printf '%s' "$cmd" | tr -d '"' | tr -d "'" | tr '[:space:]();&|`' '\n' \
+# 파일은 런타임이 실행하는 구간(&&·||·;·|·& 로 나눈 조각 중 런타임으로 시작하는 것)에서만 찾는다.
+# `python3 -c … && grep x a.spec.ts` 처럼 grep·sed·cat 의 대상일 뿐인 파일까지 읽으면, 그 안의 SQL·import
+# 문자열(테스트 픽스처 등)이 판정에 섞여 실행되지도 않는 코드로 deny 가 난다.
+RUNSEG="^[[:space:]]*\\(?[[:space:]]*$PREFIX$RUNPATH($RUNTIMES)([[:space:]]|\$|\\))"
+run_segs=$(printf '%s\n' "$cmd" | awk '{ gsub(/&&|\|\||;|\||&/, "\n"); print }' | grep -E "$RUNSEG" || true)
+files=$(printf '%s' "$run_segs" | tr -d '"' | tr -d "'" | tr '[:space:]();&|`' '\n' \
   | grep -E '\.(js|cjs|mjs|ts|mts|cts|py)$' || true)
 
 file_read=0

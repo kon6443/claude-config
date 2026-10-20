@@ -11,7 +11,7 @@
 | 규칙 로드 | 280줄 × 매 작업 (이중) | 291줄 × 1회 |
 | CLAUDE.md | 113줄 | 91줄 |
 | 실제 보안 경계 | 없음 (권한 규칙은 우회 가능) | OS 레벨 sandbox |
-| 회귀 테스트 | 0건 | 90건 (CI 게이트) |
+| 회귀 테스트 | 0건 | 93건 (CI 게이트) |
 | 검증 환경 | macOS만 | macOS + Ubuntu |
 | auto memory 저장 | 막힘 (`Edit(~/.claude/**)`) — 교훈 유실 | 허용. 설정·지시·실행·감사 경로만 deny (`check.sh` 4절이 핵심 경로 누락을 잡음) |
 
@@ -26,6 +26,7 @@
 
 | 변경 | 왜 | 기대효과 |
 |---|---|---|
+| db-guard 후속: ESM 드라이버 매칭을 모듈 지정자(`from "pg"`·`import("oracledb")`)로 좁히고 `getConnection` 을 `getConnection(` 로 좁힘. 회귀 테스트 3건 | 교차 리뷰(별도 Opus 5.5)가 바로 아래 행의 회귀를 실측: `import[^;]*(…pg…)` 가 세미콜론 없는 파일(Python 전부)에서 파일 끝까지 이어져 주석의 `pg_dump` 를 접속 코드로 보고, DB 에 붙지 않는 SQL 생성 스크립트를 ask → **deny** 로 바꿨다. `getConnectionInfo()` 도 걸렸다 | 리뷰어 픽스처 10종에서 수정 전 버전과 판정이 같다(새로 잡으려던 것만 추가로 잡힘). 기존 `import[^;]*(mysql…)` 도 같은 과잉 매칭이 있으나 선재 문제라 후속으로 둔다 |
 | ask 의 `Bash(docker *)` 를 원격·운영·대량 삭제 18개 패턴으로 좁힘 (`stack`·`service`·`swarm`·`node`·`context`·`push`·`login`·`secret`·`config`, `-H`·`--host`·`--context`, `DOCKER_HOST=`·`DOCKER_CONTEXT=`, `* prune`, `volume rm`). 글로벌 allow 에는 docker 를 넣지 않음 | bun 레포 권한 정비(그 레포 DECISIONS D-005)에서 사용자 방향 "로컬 docker 는 테스트용이라 허가, 원격·운영만 확인". 글로벌 ask 가 프로젝트 allow 보다 우선해 프로젝트에서 풀 수 없었다 | 프로젝트가 allow 로 로컬 docker 를 풀 수 있다. 원격·운영 명령은 모든 프로젝트에서 계속 확인. **위험(중간)**: 다른 프로젝트에서도 로컬 docker 가 ask 강제에서 빠진다 — default 모드는 여전히 묻지만 auto 모드는 분류기가 판단. 패턴은 접두 매칭이라 `docker run -H …` 같은 변형 일부는 못 잡을 수 있다(진짜 경계는 sandbox). 확인: `docker ps` 통과, `docker --context x ps` ask |
 | db-guard: 경로 접두 실행어(`./node_modules/.bin/tsx`·`/usr/bin/python3`)를 런타임으로 인식, DB 접속 시그니처에 ESM `import` 드라이버(oracledb·mssql·tedious·better-sqlite3·pg)·`getConnection`·`ORACLE_DB_` 추가. 테스트 8건 추가 | bun 레포 권한 정비(그 레포 DECISIONS D-006)에서 발견. `tsx:*`·`node:*` allow 아래서 ESM 으로 oracledb 에 붙는 스크립트, 경로를 붙여 부른 런타임이 가드를 통째로 건너뛰었다. 수정 전 버전에서 새 테스트 6건 실패로 재현 | 해당 스크립트가 ask(쓰기 SQL 이 같이 있으면 deny)로 걸린다. 신뢰된 읽기 전용 러너는 경로 없는 런타임으로 부를 때만 계속 통과(`tsx <러너>` 테스트 추가). **위험(낮음)**: `getConnection` 이 DB 와 무관한 코드에도 있으면 ask 가 늘 수 있다 |
 | deny 에 실행·정책·감사 경로 19개 추가 — `shell-snapshots/`·`session-env/`·`local/`·`chrome/`·`ide/`·`daemon/`·`daemon.json`·`launch.json`·`cowork_plugins/`·`mcp-skill-archives/`·`scheduled_tasks.json`·`routines/`·`loop.md`·`remote-settings*.json`·`policy-limits*`·`audit.log*`·`backups/`·`projects/*/*.jsonl`·`~/.claude.json`. 모델이 정상적으로 쓰는 `memory/`·`plans/`·`jobs/`(백그라운드 scratch)·`todos/`·`logs/` 는 제외. README 에 bypassPermissions 한계·memory 인젝션 표면 명시 | 아래 "14개로 좁힘" 직후 교차 리뷰(본 세션 + 별도 Opus 5.5 리뷰어)에서, 통째 deny 를 풀면서 **이미 있던** 실행 표면(Bash 전에 불러오는 셸 상태, 예약 실행, 정책 사본)과 감사 로그·대화 기록이 protected path 확인에만 기대게 됐다는 지적이 나왔다. protected path 는 bypassPermissions 에서 꺼진다. 하네스 sandbox 가 셸 쓰기를 막는 목록과 `~/.claude` 실물(`ls -A`)을 대조해 실행·정책·감사 표면을 골랐다(최종 리뷰에서 `chrome/`·`backups/` 등 추가). `~/.claude.json` 은 처음부터 범위 밖이던 빈틈을 같이 메웠다 | 실행·정책·감사 표면이 모든 모드에서 deny 로 막힌다. **위험(낮음)**: Claude Code 자신의 내부 쓰기는 Edit 규칙을 타지 않아 영향 없음. 후속: `Read(~/.claude/.credentials.json)` 은 `Read(**/credentials*)` 에 안 걸려 별도 검토 |

@@ -79,6 +79,13 @@ printf 'const u = process.env.ORACLE_DB_USER;\n' > "$W/oraenv.ts"
 run_guard "$W" "tsx esm.ts";     check "ESM import oracledb → ask" 0 '"ask"' "$rc" "$out"
 run_guard "$W" "tsx getconn.ts"; check "getConnection → ask" 0 '"ask"' "$rc" "$out"
 run_guard "$W" "tsx oraenv.ts";  check "ORACLE_DB_ 환경변수 → ask" 0 '"ask"' "$rc" "$out"
+printf 'const pg = await import("pg");\n' > "$W/dyn.ts"
+run_guard "$W" "tsx dyn.ts";     check "동적 import(\\\"pg\\\") → ask" 0 '"ask"' "$rc" "$out"
+# 접속 시그니처를 넓히다 생긴 오탐 — DB 에 붙지 않는 코드는 하드 차단·ask 로 바뀌면 안 된다
+printf 'import os\n# use pg_dump later\nprint("CREATE TABLE x (a int)")\n' > "$W/gen.py"
+printf 'const n = require("net");\nn.getConnectionInfo();\n' > "$W/netinfo.js"
+run_guard "$W" "python3 gen.py";  check "SQL 생성만 + 주석의 pg_dump → ask (deny 아님)" 0 '"ask"' "$rc" "$out"
+run_guard "$W" "node netinfo.js"; check "getConnectionInfo (DB 무관) → 통과" 0 "" "$rc" "$out"
 
 # 신뢰된 읽기 전용 러너: 마커 + HEAD blob 동일 + 저장소 안 + 단독 호출일 때만 통과
 if command -v git >/dev/null 2>&1; then

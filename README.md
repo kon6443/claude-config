@@ -87,7 +87,7 @@ claude-config/
 
 ### db-guard 판정표
 
-대상: `node|python[3.x]|bun|deno|tsx|ts-node|npx|uv run|poetry run|pipenv run|pnpm/yarn exec|dlx|npm exec`로 시작하는 세그먼트(`VAR=값` 접두 · `env`/`command` 등 래퍼 · 서브셸 · `./node_modules/.bin/tsx`·`/usr/bin/python3` 같은 경로 접두 포함). 명령 문자열 + 참조된 `.js/.ts/.py` 파일 내용을 스캔한다. DB 접속 시그니처는 `require`·ESM `import` 양쪽의 드라이버 이름(oracledb·pg·mysql 등), `createConnection`·`createPool`·`getConnection`, `DB_*`·`ORACLE_DB_*` 환경변수 등이다.
+대상: `node|python[3.x]|bun|deno|tsx|ts-node|npx|uv run|poetry run|pipenv run|pnpm/yarn exec|dlx|npm exec`로 시작하는 세그먼트(`VAR=값` 접두 · `env`/`command` 등 래퍼 · 서브셸 · `./node_modules/.bin/tsx`·`/usr/bin/python3` 같은 경로 접두 포함). 명령 문자열 + 참조된 `.js/.ts/.py` 파일 내용을 스캔한다. DB 접속 시그니처는 `require(…)`·`import … from` 의 드라이버 이름(oracledb·pg·mysql 등 — oracledb·pg·mssql·tedious·better-sqlite3 의 ESM 은 따옴표 안 모듈 이름만 본다), `createConnection`·`createPool`·`getConnection(`, `DB_*`·`ORACLE_DB_*` 환경변수 등이다. 경로 접두 실행어도 대상이라 `.venv/bin/python -m pytest` 처럼 스크립트 파일이 없는 실행은 "대상 확인 불가" ask 가 된다(경로 없는 `python3 -m pytest` 와 같은 판정).
 
 | 쓰기 SQL 시그니처 | DB 접속 시그니처 | 판정 |
 |---|---|---|

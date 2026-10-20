@@ -11,7 +11,7 @@
 | 규칙 로드 | 280줄 × 매 작업 (이중) | 291줄 × 1회 |
 | CLAUDE.md | 113줄 | 91줄 |
 | 실제 보안 경계 | 없음 (권한 규칙은 우회 가능) | OS 레벨 sandbox |
-| 회귀 테스트 | 0건 | 93건 (CI 게이트) |
+| 회귀 테스트 | 0건 | 95건 (CI 게이트) |
 | 검증 환경 | macOS만 | macOS + Ubuntu |
 | auto memory 저장 | 막힘 (`Edit(~/.claude/**)`) — 교훈 유실 | 허용. 설정·지시·실행·감사 경로만 deny (`check.sh` 4절이 핵심 경로 누락을 잡음) |
 
@@ -26,7 +26,9 @@
 
 | 변경 | 왜 | 기대효과 |
 |---|---|---|
-| docker ask 후속: 14개 패턴 추가(총 32) — `-c`(=`--context`), `image push`·`* --push`·`manifest`·`buildx imagetools`, `compose down -v/--volumes`·`rm/rmi $(…)`, `--privileged`·`-v /:`, `export DOCKER_HOST/CONTEXT`·`env DOCKER_*` | 교차 리뷰(별도 Opus 5.5)가 바로 아래 행의 회귀를 지적: 예전엔 `Bash(docker *)` 로 전부 ask 였는데 축소 후 `docker -c prod`, 레지스트리 푸시 변형, 호스트 루트 마운트가 auto 모드에서 분류기 판단에만 맡겨졌다. 아래 행의 "`docker run -H` 는 못 잡을 수 있다" 예시는 틀렸다(`docker * -H *` 가 잡는다) | 원격·레지스트리·호스트 탈출 변형이 다시 ask. **위험(낮음)**: 컨테이너 인자의 `-H`·`-c` 로 ask 오탐. 글자 매칭이라 `-v /etc:/x` 같은 변형은 여전히 못 잡는다 |
+| docker ask 최종: 4개 추가(총 36) — `--volume /:`, `docker.sock`, `compose push`, `docker * rm *$(…)`(container/image rm) | 최종 교차 리뷰(새 Opus 5.5)가 "호스트 탈출"의 가장 흔한 경로(도커 소켓 마운트)와 푸시·대량 삭제 변형 누락을 지적 | 남은 미탐(`--mount source=/`, `--pid=host`, `--cap-add`, `buildx --output type=registry`, `xargs docker rm`)은 README 에 명시. `$(…)` 를 포함한 패턴이 원문에 매칭되는지는 실제 세션 탐침 필요 |
+| db-guard 최종: ESM 드라이버를 **줄 단위·줄머리 import/export 문장**으로만 매칭(`import x from "pg"`, 여러 줄 `} from "pg"`, `import("oracledb")`). 테스트 2건(총 95) | 최종 교차 리뷰가 바로 아래 "db-guard 후속" 의 `(from\|import)…["']pg` 도 문장 위치를 안 봐 주석 `# migrate data from "pg"` + SQL 문자열 스크립트를 ask → **deny** 로 바꾸는 것을 실측(재현 확인). 개행을 지운 문자열에서 매칭한 게 원인 | 리뷰어 비교 36종에서 수정 전 대비 바뀐 판정은 모두 의도한 탐지(ESM 드라이버·경로 접두 런타임)뿐. 주석·문자열 속 문구는 더 이상 접속 코드로 보지 않는다 |
+| docker ask 후속: 14개 패턴 추가(총 32) — `-c`(=`--context`), `image push`·`* --push`·`manifest`·`buildx imagetools`, `compose down -v/--volumes`·`rm/rmi $(…)`, `--privileged`·`-v /:`, `export DOCKER_HOST/CONTEXT`·`env DOCKER_*` | 교차 리뷰(별도 Opus 5.5)가 바로 아래 행의 회귀를 지적: 예전엔 `Bash(docker *)` 로 전부 ask 였는데 축소 후 `docker -c prod`, 레지스트리 푸시 변형, 호스트 루트 마운트가 auto 모드에서 분류기 판단에만 맡겨졌다. 아래 행의 "`docker run -H` 는 못 잡을 수 있다" 예시는 틀렸다(`docker * -H *` 가 잡는다) | 원격·레지스트리·호스트 탈출 변형이 다시 ask. **위험(낮음)**: 컨테이너 인자의 `-H` 로 ask 오탐(`-c` 는 `docker -c` 로 시작할 때만 맞아 오탐 없음 — 커밋 본문의 `-c` 언급은 틀림). 글자 매칭이라 `-v /etc:/x` 같은 변형은 여전히 못 잡는다 |
 | db-guard 후속: ESM 드라이버 매칭을 모듈 지정자(`from "pg"`·`import("oracledb")`)로 좁히고 `getConnection` 을 `getConnection(` 로 좁힘. 회귀 테스트 3건 | 교차 리뷰(별도 Opus 5.5)가 바로 아래 행의 회귀를 실측: `import[^;]*(…pg…)` 가 세미콜론 없는 파일(Python 전부)에서 파일 끝까지 이어져 주석의 `pg_dump` 를 접속 코드로 보고, DB 에 붙지 않는 SQL 생성 스크립트를 ask → **deny** 로 바꿨다. `getConnectionInfo()` 도 걸렸다 | 리뷰어 픽스처 10종에서 수정 전 버전과 판정이 같다(새로 잡으려던 것만 추가로 잡힘). 기존 `import[^;]*(mysql…)` 도 같은 과잉 매칭이 있으나 선재 문제라 후속으로 둔다 |
 | ask 의 `Bash(docker *)` 를 원격·운영·대량 삭제 18개 패턴으로 좁힘 (`stack`·`service`·`swarm`·`node`·`context`·`push`·`login`·`secret`·`config`, `-H`·`--host`·`--context`, `DOCKER_HOST=`·`DOCKER_CONTEXT=`, `* prune`, `volume rm`). 글로벌 allow 에는 docker 를 넣지 않음 | bun 레포 권한 정비(그 레포 DECISIONS D-005)에서 사용자 방향 "로컬 docker 는 테스트용이라 허가, 원격·운영만 확인". 글로벌 ask 가 프로젝트 allow 보다 우선해 프로젝트에서 풀 수 없었다 | 프로젝트가 allow 로 로컬 docker 를 풀 수 있다. 원격·운영 명령은 모든 프로젝트에서 계속 확인. **위험(중간)**: 다른 프로젝트에서도 로컬 docker 가 ask 강제에서 빠진다 — default 모드는 여전히 묻지만 auto 모드는 분류기가 판단. 패턴은 접두 매칭이라 `docker run -H …` 같은 변형 일부는 못 잡을 수 있다(진짜 경계는 sandbox). 확인: `docker ps` 통과, `docker --context x ps` ask |
 | db-guard: 경로 접두 실행어(`./node_modules/.bin/tsx`·`/usr/bin/python3`)를 런타임으로 인식, DB 접속 시그니처에 ESM `import` 드라이버(oracledb·mssql·tedious·better-sqlite3·pg)·`getConnection`·`ORACLE_DB_` 추가. 테스트 8건 추가 | bun 레포 권한 정비(그 레포 DECISIONS D-006)에서 발견. `tsx:*`·`node:*` allow 아래서 ESM 으로 oracledb 에 붙는 스크립트, 경로를 붙여 부른 런타임이 가드를 통째로 건너뛰었다. 수정 전 버전에서 새 테스트 6건 실패로 재현 | 해당 스크립트가 ask(쓰기 SQL 이 같이 있으면 deny)로 걸린다. 신뢰된 읽기 전용 러너는 경로 없는 런타임으로 부를 때만 계속 통과(`tsx <러너>` 테스트 추가). **위험(낮음)**: `getConnection` 이 DB 와 무관한 코드에도 있으면 ask 가 늘 수 있다 |

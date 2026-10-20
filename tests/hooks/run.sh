@@ -90,6 +90,11 @@ printf '# migrate data from "pg" to mysql\nprint("INSERT INTO t VALUES (1)")\n' 
 printf 'import {\n  Pool,\n} from "pg";\nconst q = "INSERT INTO t VALUES (1)";\n' > "$W/multi.ts"
 run_guard "$W" "python3 mig.py"; check "주석 문장의 from \\\"pg\\\" + SQL 생성 → ask (deny 아님)" 0 '"ask"' "$rc" "$out"
 run_guard "$W" "tsx multi.ts";   check "여러 줄 import 의 } from \\\"pg\\\" + INSERT → deny" 2 "" "$rc" "$out"
+# 실행되지 않고 grep·sed 대상일 뿐인 파일의 내용은 판정에 섞지 않는다 (bun 레포 실사례: SQL 테스트 spec)
+printf 'import { Pool } from "pg";\nit("x", () => expect(ro("DROP TABLE x")).toBe(false));\n' > "$W/sql.spec.ts"
+run_guard "$W" "python3 -c \\\"print(1)\\\" && grep -n x sql.spec.ts"; check "grep 대상 spec 의 SQL·import → 판정에 안 섞임 (deny 아님)" 0 "" "$rc" "$out"
+run_guard "$W" "sed -n 1p sql.spec.ts | node -e \\\"1\\\""; check "파이프 앞 sed 대상 파일 → 안 섞임" 0 "" "$rc" "$out"
+run_guard "$W" "grep -n x sql.spec.ts && tsx seed.ts"; check "같은 명령의 실행 파일은 계속 스캔 → deny" 2 "" "$rc" "$out"
 
 # 신뢰된 읽기 전용 러너: 마커 + HEAD blob 동일 + 저장소 안 + 단독 호출일 때만 통과
 if command -v git >/dev/null 2>&1; then

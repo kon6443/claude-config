@@ -11,7 +11,7 @@
 | 규칙 로드 | 280줄 × 매 작업 (이중) | 291줄 × 1회 |
 | CLAUDE.md | 113줄 | 91줄 |
 | 실제 보안 경계 | 없음 (권한 규칙은 우회 가능) | OS 레벨 sandbox |
-| 회귀 테스트 | 0건 | 95건 (CI 게이트) |
+| 회귀 테스트 | 0건 | 98건 (CI 게이트) |
 | 검증 환경 | macOS만 | macOS + Ubuntu |
 | auto memory 저장 | 막힘 (`Edit(~/.claude/**)`) — 교훈 유실 | 허용. 설정·지시·실행·감사 경로만 deny (`check.sh` 4절이 핵심 경로 누락을 잡음) |
 
@@ -26,6 +26,7 @@
 
 | 변경 | 왜 | 기대효과 |
 |---|---|---|
+| db-guard: 스캔할 파일을 **런타임이 실행하는 구간**에 나온 것으로 한정 (`&&`·`\|\|`·`;`·`\|`·`&` 로 나눈 조각 중 런타임으로 시작하는 것). 테스트 3건(총 98) | PR #19 머지 후 bun 레포 세션이 실사례 3건 보고: `python3 -c …`/heredoc 과 같은 명령에 `grep`·`sed` 대상으로 둔 SQL 테스트 spec 의 `"DROP TABLE"`·`from "pg"`·`getConnection()` 이 판정에 섞여 **deny**. 명령에 나온 모든 `.ts/.py` 를 읽던 선재 동작이 원래는 ask 로 끝났는데, PR #19 가 접속 시그니처를 넓혀 deny 로 격상시켰다(재현 확인) | 실행되지 않는 파일은 판정에 안 섞인다(bun 사례 3건 → 통과). 리뷰어 비교 36종의 판정은 그대로. `cat x.js \| node` 처럼 stdin 으로 넘기는 경우는 "대상 확인 불가" ask 로 남는다 |
 | docker ask 최종: 4개 추가(총 36) — `--volume /:`, `docker.sock`, `compose push`, `docker * rm *$(…)`(container/image rm) | 최종 교차 리뷰(새 Opus 5.5)가 "호스트 탈출"의 가장 흔한 경로(도커 소켓 마운트)와 푸시·대량 삭제 변형 누락을 지적 | 남은 미탐(`--mount source=/`, `--pid=host`, `--cap-add`, `buildx --output type=registry`, `xargs docker rm`)은 README 에 명시. `$(…)` 를 포함한 패턴이 원문에 매칭되는지는 실제 세션 탐침 필요 |
 | db-guard 최종: ESM 드라이버를 **줄 단위·줄머리 import/export 문장**으로만 매칭(`import x from "pg"`, 여러 줄 `} from "pg"`, `import("oracledb")`). 테스트 2건(총 95) | 최종 교차 리뷰가 바로 아래 "db-guard 후속" 의 `(from\|import)…["']pg` 도 문장 위치를 안 봐 주석 `# migrate data from "pg"` + SQL 문자열 스크립트를 ask → **deny** 로 바꾸는 것을 실측(재현 확인). 개행을 지운 문자열에서 매칭한 게 원인 | 리뷰어 비교 36종에서 수정 전 대비 바뀐 판정은 모두 의도한 탐지(ESM 드라이버·경로 접두 런타임)뿐. 주석·문자열 속 문구는 더 이상 접속 코드로 보지 않는다 |
 | docker ask 후속: 14개 패턴 추가(총 32) — `-c`(=`--context`), `image push`·`* --push`·`manifest`·`buildx imagetools`, `compose down -v/--volumes`·`rm/rmi $(…)`, `--privileged`·`-v /:`, `export DOCKER_HOST/CONTEXT`·`env DOCKER_*` | 교차 리뷰(별도 Opus 5.5)가 바로 아래 행의 회귀를 지적: 예전엔 `Bash(docker *)` 로 전부 ask 였는데 축소 후 `docker -c prod`, 레지스트리 푸시 변형, 호스트 루트 마운트가 auto 모드에서 분류기 판단에만 맡겨졌다. 아래 행의 "`docker run -H` 는 못 잡을 수 있다" 예시는 틀렸다(`docker * -H *` 가 잡는다) | 원격·레지스트리·호스트 탈출 변형이 다시 ask. **위험(낮음)**: 컨테이너 인자의 `-H` 로 ask 오탐(`-c` 는 `docker -c` 로 시작할 때만 맞아 오탐 없음 — 커밋 본문의 `-c` 언급은 틀림). 글자 매칭이라 `-v /etc:/x` 같은 변형은 여전히 못 잡는다 |
